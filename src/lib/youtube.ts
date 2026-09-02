@@ -67,6 +67,12 @@ class Voice {
   ready = false
   level = 0
   private fadeTimer: number | null = null
+  /** Fade waiting for the player to actually start emitting sound. */
+  private armed: { target: number; ms: number; done?: () => void; onStart?: () => void } | null = null
+  /** Set once the player has played at least once, so the next playVideo starts without buffering. */
+  buffered = false
+  /** Playing silently just to buffer; paused again as soon as PLAYING arrives. */
+  priming = false
 
   constructor(private readonly volumeFor: (level: number) => number) {}
 
@@ -81,10 +87,57 @@ class Voice {
   }
 
   cancelFade() {
+    this.armed = null
     if (this.fadeTimer !== null) {
       clearInterval(this.fadeTimer)
       this.fadeTimer = null
     }
+  }
+
+  /**
+   * Like fadeTo, but the ramp only starts once the player reports PLAYING
+   * (see startArmedFade). playVideo() on a video that is not buffered yet
+   * takes a while before any sound comes out; a fade started right away
+   * would be half done by then and the sound would come in with a jump.
+   */
+  armFade(target: number, ms: number, done?: () => void, onStart?: () => void) {
+    this.cancelFade()
+    this.armed = { target, ms, done, onStart }
+    if (this.playing) this.startArmedFade()
+  }
+
+  startArmedFade() {
+    const armed = this.armed
+    if (!armed) return
+    this.armed = null
+    armed.onStart?.()
+    this.fadeTo(armed.target, armed.ms, armed.done)
+  }
+
+  get playing(): boolean {
+    return this.ready && this.player?.getPlayerState() === YT.PlayerState.PLAYING
+  }
+
+  /** Play at volume 0 so the video buffers; handlePlaying pauses it again. */
+  prime() {
+    if (!this.ready || !this.player || this.buffered || this.priming) return
+    this.priming = true
+    this.level = 0
+    this.applyVolume()
+    this.player.playVideo()
+  }
+
+  /** Called on the player's PLAYING event. Returns true when it was only a priming run. */
+  handlePlaying(): boolean {
+    this.buffered = true
+    if (this.priming) {
+      this.priming = false
+      this.pause()
+      this.seekToStart()
+      return true
+    }
+    this.startArmedFade()
+    return false
   }
 
   fadeTo(target: number, ms: number, done?: () => void) {
@@ -111,6 +164,7 @@ class Voice {
   /** Silence and pause right away. */
   cut() {
     this.cancelFade()
+    this.priming = false
     this.level = 0
     this.applyVolume()
     this.pause()
@@ -239,8 +293,14 @@ export class TrackPlayer {
     const voice = this.voices[index]
     const S = YT.PlayerState
     if (state === S.PLAYING) {
+      if (voice.handlePlaying()) return
       this.emitTitle(voice)
-      if (index === this.current && this.active) this.onStatus?.(voice.fading ? 'fading' : 'playing')
+      if (index === this.current && this.active) {
+        this.onStatus?.(voice.fading ? 'fading' : 'playing')
+        // Buffer the other loop voice now, while this one plays, so the
+        // first crossfade starts as promptly as the later ones.
+        for (const other of this.voices) if (other !== voice) other.prime()
+      }
     } else if (state === S.ENDED) {
       if (index !== this.current) {
         voice.pause()
@@ -308,12 +368,14 @@ export class TrackPlayer {
     incoming.applyVolume()
     incoming.player.seekTo(0, true)
     incoming.player.playVideo()
-    incoming.fadeTo(1, ms)
-    outgoing.fadeTo(0, ms, () => {
-      outgoing.pause()
-      outgoing.seekToStart()
-      this.crossfading = false
-    })
+    // The outgoing ramp waits for the incoming voice too, so the two stay aligned.
+    incoming.armFade(1, ms, undefined, () =>
+      outgoing.fadeTo(0, ms, () => {
+        outgoing.pause()
+        outgoing.seekToStart()
+        this.crossfading = false
+      }),
+    )
     this.current = 1 - this.current
   }
 
@@ -343,10 +405,10 @@ export class TrackPlayer {
       this.onStatus?.('playing')
       return
     }
-    this.onStatus?.('fading')
+    this.onStatus?.('loading')
     voice.applyVolume()
     voice.player.playVideo()
-    voice.fadeTo(1, fadeMs, () => this.onStatus?.('playing'))
+    voice.armFade(1, fadeMs, () => this.onStatus?.('playing'))
   }
 
   /** One-shot from the start, no fade in. Used by SFX. */
@@ -381,7 +443,7 @@ export class TrackPlayer {
       if (voice === current) continue
       if (voice.level > 0 || voice.fading) voice.fadeTo(0, fadeMs, () => voice.pause())
     }
-    current.fadeTo(0, fadeMs, () => {
+    current.fadeTo(0, current.level > 0 ? fadeMs : 0, () => {
       this.active = false
       current.pause()
       this.onStatus?.('idle')
