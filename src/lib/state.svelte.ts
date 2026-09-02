@@ -93,6 +93,8 @@ export const runtime = $state({
   activeSceneId: null as string | null,
   /** true while the active scene plays its battle tracks instead of its music. */
   battle: false,
+  /** Track being dragged between or within groups, shared by every section. */
+  dragTrackId: null as string | null,
   status: {} as Record<string, PlayerStatus>,
   errors: {} as Record<string, string>,
   titles: {} as Record<string, string>,
@@ -191,15 +193,17 @@ function fadeFor(id: string): number {
 }
 
 /**
- * Tracks a scene start plays: its music or battle track, whichever mode is
- * on, plus the first ambience track. Other ambience tracks are alternatives
- * the user can start by hand.
+ * Tracks a scene start plays: the first track of music or battle, whichever
+ * mode is on, plus the first ambience track. Every group is an ordered list
+ * whose first entry is the default; the rest are alternatives started by hand.
  */
 function sceneTargets(scene: Scene): Track[] {
   const mode: Group = runtime.battle ? 'battle' : 'music'
-  const out = scene.tracks.filter((t) => t.group === mode)
-  const ambience = scene.tracks.find((t) => t.group === 'ambience')
-  if (ambience) out.push(ambience)
+  const out: Track[] = []
+  for (const group of [mode, 'ambience'] as Group[]) {
+    const first = scene.tracks.find((t) => t.group === group)
+    if (first) out.push(first)
+  }
   return out
 }
 
@@ -246,16 +250,6 @@ export function activateScene(sceneId: string) {
   startScene(sceneId)
 }
 
-/**
- * Switch the scene between music and battle. Music fades out while battle
- * fades in, or the reverse; ambience keeps playing. On a scene that is not
- * active this also activates it, straight into the chosen mode.
- */
-function setBattle(sceneId: string, on: boolean) {
-  runtime.battle = on
-  startScene(sceneId)
-}
-
 /** Fade only this scene's tracks out. */
 export function fadeOutScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
@@ -284,16 +278,13 @@ export function toggleTrack(track: Track) {
     return
   }
   if (track.group !== 'ambience') {
+    // Music and battle never overlap: every other music or battle track of
+    // the scene fades out. In the active scene this also sets the mode, so
+    // a later scene start or mode switch stays consistent.
     const scene = session.scenes.find((s) => s.tracks.includes(track))
-    if (scene && runtime.activeSceneId === scene.id) {
-      // Playing music or battle in the active scene switches the mode:
-      // the other group fades out while this one fades in.
-      setBattle(scene.id, track.group === 'battle')
-      return
-    }
-    // Scene not active: still never let music and battle overlap.
+    if (scene && runtime.activeSceneId === scene.id) runtime.battle = track.group === 'battle'
     for (const other of scene?.tracks ?? []) {
-      if (other.group === 'ambience' || other.group === track.group) continue
+      if (other === track || other.group === 'ambience') continue
       const p = players.get(other.id)
       if (p?.active) p.stop(FADE_MS)
     }
@@ -383,16 +374,21 @@ export function addTrack(sceneId: string, group: Group, ytId: string, kind: Kind
   return track
 }
 
-/** Moves a track to position `target` among the tracks of its own group. */
-export function moveTrackTo(sceneId: string, trackId: string, target: number) {
+/**
+ * Moves a track to position `target` inside `group`, which may be a different
+ * group from the one it is in now. Dropping into a group that already has
+ * tracks adds to it; nothing is replaced. The player is untouched.
+ */
+export function moveTrackTo(sceneId: string, trackId: string, group: Group, target: number) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   const track = scene?.tracks.find((t) => t.id === trackId)
   if (!scene || !track) return
-  const group = scene.tracks.filter((t) => t.group === track.group && t.id !== trackId)
-  target = Math.max(0, Math.min(group.length, target))
-  group.splice(target, 0, track)
+  track.group = group
+  const members = scene.tracks.filter((t) => t.group === group && t.id !== trackId)
+  target = Math.max(0, Math.min(members.length, target))
+  members.splice(target, 0, track)
   // Groups are shown separately, so their relative order in the array does not matter.
-  scene.tracks = [...scene.tracks.filter((t) => t.group !== track.group), ...group]
+  scene.tracks = [...scene.tracks.filter((t) => t.group !== group), ...members]
 }
 
 export function removeTrack(sceneId: string, trackId: string) {

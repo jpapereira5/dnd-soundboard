@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { addTrack, moveTrackTo } from '../lib/state.svelte'
+  import { runtime, addTrack, moveTrackTo } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -9,41 +9,51 @@
 
   const meta = $derived(GROUPS.find((g) => g.id === group)!)
   const tracks = $derived(scene.tracks.filter((t) => t.group === group))
-  /** Music and battle hold one track each, on one line; ambience can layer several. */
+  /** Music and battle sit on one line and only offer the add form while empty. */
   const single = $derived(group !== 'ambience')
   const canAdd = $derived(!single || tracks.length === 0)
 
-  // Ambience tracks reorder by dragging the grip at their left edge. The
-  // first one is the one a scene start plays. Players live outside these
-  // cards (see Players.svelte), so moving a card never touches playback.
-  let dragId = $state<string | null>(null)
+  // Any track can be dragged by its grip to another spot in its group or
+  // into another group of the scene. The drag id is shared through runtime
+  // so every section can be a drop target; the drop position is local.
+  // Players live outside these cards (see Players.svelte), so moving a
+  // card never touches playback.
   let dropIndex = $state<number | null>(null)
+  const dropAt = $derived(runtime.dragTrackId ? dropIndex : null)
 
   function onDragStart(e: DragEvent, id: string) {
-    dragId = id
+    runtime.dragTrackId = id
     e.dataTransfer?.setData('text/plain', id)
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
   }
 
-  function onDragOver(e: DragEvent, index: number) {
-    if (dragId === null) return
+  function onDragOver(e: DragEvent) {
+    if (!runtime.dragTrackId) return
     e.preventDefault()
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const item = (e.target as HTMLElement).closest<HTMLElement>('.item')
+    if (!item) {
+      dropIndex = tracks.length
+      return
+    }
+    const index = Number(item.dataset.index)
+    const rect = item.getBoundingClientRect()
     dropIndex = e.clientY > rect.top + rect.height / 2 ? index + 1 : index
   }
 
   function onDrop(e: DragEvent) {
     e.preventDefault()
-    if (dragId !== null && dropIndex !== null) {
-      const from = tracks.findIndex((t) => t.id === dragId)
-      moveTrackTo(scene.id, dragId, dropIndex > from ? dropIndex - 1 : dropIndex)
+    const id = runtime.dragTrackId
+    if (id && dropIndex !== null) {
+      const from = tracks.findIndex((t) => t.id === id)
+      // Removing the dragged card from this list shifts the ones after it up.
+      moveTrackTo(scene.id, id, group, from >= 0 && dropIndex > from ? dropIndex - 1 : dropIndex)
     }
     onDragEnd()
   }
 
   function onDragEnd() {
-    dragId = null
+    runtime.dragTrackId = null
     dropIndex = null
   }
 
@@ -56,24 +66,16 @@
 <div class="group" class:single>
   <h3>{meta.label}</h3>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="body" ondrop={onDrop} ondragleave={onDragLeave}>
+  <div class="body" class:drop-end={dropAt === tracks.length} ondragover={onDragOver} ondrop={onDrop} ondragleave={onDragLeave}>
     {#each tracks as track, i (track.id)}
-      <div
-        class="item"
-        class:dragging={dragId === track.id}
-        class:drop-before={dropIndex === i}
-        class:drop-after={dropIndex === i + 1 && i === tracks.length - 1}
-        ondragover={(e) => onDragOver(e, i)}
-      >
-        {#if !single}
-          <span
-            class="grip"
-            draggable="true"
-            title="Arrastar para reordenar. A primeira é a que arranca com a cena."
-            ondragstart={(e) => onDragStart(e, track.id)}
-            ondragend={onDragEnd}>⠿</span
-          >
-        {/if}
+      <div class="item" data-index={i} class:dragging={runtime.dragTrackId === track.id} class:drop-before={dropAt === i}>
+        <span
+          class="grip"
+          draggable="true"
+          title="Arrastar para reordenar ou mover para outro grupo. A primeira de cada grupo é a que arranca."
+          ondragstart={(e) => onDragStart(e, track.id)}
+          ondragend={onDragEnd}>⠿</span
+        >
         <TrackCard {track} sceneId={scene.id} />
       </div>
     {/each}
@@ -89,8 +91,11 @@
     font-size: 1rem;
   }
   .body {
+    position: relative;
     display: grid;
     gap: 0.5rem;
+    /* Room for the insertion bar at the end and for drops into an empty group. */
+    min-height: 1.5rem;
   }
   .item {
     position: relative;
@@ -116,9 +121,9 @@
   .item.dragging {
     opacity: 0.4;
   }
-  /* Insertion bar in the gap above or below the card. */
+  /* Insertion bar: above the card it lands before, or at the end of the list. */
   .item.drop-before::before,
-  .item.drop-after::after {
+  .body.drop-end::after {
     content: '';
     position: absolute;
     left: 0;
@@ -131,8 +136,8 @@
   .item.drop-before::before {
     top: calc(-0.25rem - 2px);
   }
-  .item.drop-after::after {
-    bottom: calc(-0.25rem - 2px);
+  .body.drop-end::after {
+    bottom: -0.35rem;
   }
   .group :global(form.add) {
     margin-top: 0.6rem;
