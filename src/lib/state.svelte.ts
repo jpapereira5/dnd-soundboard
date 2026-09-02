@@ -190,9 +190,17 @@ function fadeFor(id: string): number {
   return findTrack(id) ? FADE_MS : 0
 }
 
-/** Groups that sound in the active scene right now. */
-function activeGroups(): Group[] {
-  return ['ambience', runtime.battle ? 'battle' : 'music']
+/**
+ * Tracks a scene start plays: its music or battle track, whichever mode is
+ * on, plus the first ambience track. Other ambience tracks are alternatives
+ * the user can start by hand.
+ */
+function sceneTargets(scene: Scene): Track[] {
+  const mode: Group = runtime.battle ? 'battle' : 'music'
+  const out = scene.tracks.filter((t) => t.group === mode)
+  const ambience = scene.tracks.find((t) => t.group === 'ambience')
+  if (ambience) out.push(ambience)
+  return out
 }
 
 // ---------------------------------------------------------------------------
@@ -219,8 +227,7 @@ function startScene(sceneId: string) {
   if (!scene) return
   runtime.activeSceneId = sceneId
   runtime.viewSceneId = sceneId
-  const groups = activeGroups()
-  const wanted = new Set(scene.tracks.filter((t) => groups.includes(t.group)).map((t) => t.id))
+  const wanted = new Set(sceneTargets(scene).map((t) => t.id))
   for (const [id, player] of players) {
     if (wanted.has(id)) continue
     if (player.active && findTrack(id)) player.stop(FADE_MS)
@@ -374,6 +381,18 @@ export function addTrack(sceneId: string, group: Group, ytId: string, kind: Kind
   }
   scene.tracks.push(track)
   return track
+}
+
+/** Moves a track to position `target` among the tracks of its own group. */
+export function moveTrackTo(sceneId: string, trackId: string, target: number) {
+  const scene = session.scenes.find((s) => s.id === sceneId)
+  const track = scene?.tracks.find((t) => t.id === trackId)
+  if (!scene || !track) return
+  const group = scene.tracks.filter((t) => t.group === track.group && t.id !== trackId)
+  target = Math.max(0, Math.min(group.length, target))
+  group.splice(target, 0, track)
+  // Groups are shown separately, so their relative order in the array does not matter.
+  scene.tracks = [...scene.tracks.filter((t) => t.group !== track.group), ...group]
 }
 
 export function removeTrack(sceneId: string, trackId: string) {

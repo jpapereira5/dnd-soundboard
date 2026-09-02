@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Track } from '../lib/types'
   import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist } from '../lib/state.svelte'
-  import PlayerHost from './PlayerHost.svelte'
 
   let { track, sceneId }: { track: Track; sceneId: string } = $props()
 
@@ -27,7 +26,6 @@
 </script>
 
 <div class="card track row" class:playing title={hint}>
-  <PlayerHost id={track.id} options={{ ytId: track.ytId, kind: track.kind, loop: true, shuffle: track.shuffle, volume: track.volume }} />
 
   <span class="status-dot {status}"></span>
   <input

@@ -2,7 +2,6 @@
   import type { Scene } from '../lib/types'
   import { runtime, playSfx, addSfx, removeSfx, applySfxVolume } from '../lib/state.svelte'
   import { SFX_KEYS } from '../lib/hotkeys'
-  import PlayerHost from './PlayerHost.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
   let { scene }: { scene: Scene } = $props()
@@ -15,7 +14,6 @@
     {#each scene.sfx as sfx, i (sfx.id)}
       {@const status = runtime.status[sfx.id] ?? 'idle'}
       <div class="card" class:playing={status === 'playing'}>
-        <PlayerHost id={sfx.id} options={{ ytId: sfx.ytId, kind: 'video', loop: false, shuffle: false, volume: sfx.volume }} />
         <div class="body">
           <button class="fire primary" disabled={status === 'error'} onclick={() => playSfx(sfx)}>
             {#if SFX_KEYS[i]}<kbd>{SFX_KEYS[i].toUpperCase()}</kbd>{/if}

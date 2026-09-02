@@ -4,11 +4,7 @@
   import Header from './components/Header.svelte'
   import SceneTabs from './components/SceneTabs.svelte'
   import ScenePanel from './components/ScenePanel.svelte'
-
-  // Panels keep a fixed DOM order whatever the tab order. Only one is
-  // visible at a time, and moving a panel would move its YouTube iframes,
-  // which the browser reloads, killing whatever that scene was playing.
-  const panels = $derived([...session.scenes].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)))
+  import Players from './components/Players.svelte'
 
   function onKeydown(e: KeyboardEvent) {
     if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return
@@ -39,10 +35,12 @@
 
 <Header />
 <SceneTabs />
+<!-- All YouTube players, in a fixed DOM order. See Players.svelte. -->
+<Players />
 
 <main>
-  {#each panels as scene (scene.id)}
-    <!-- Every scene stays mounted so crossfades between scenes keep both sets of players alive. -->
+  {#each session.scenes as scene (scene.id)}
+    <!-- Every scene stays mounted so switching the view never recreates its cards. -->
     <div hidden={runtime.viewSceneId !== scene.id}>
       <ScenePanel {scene} />
     </div>
