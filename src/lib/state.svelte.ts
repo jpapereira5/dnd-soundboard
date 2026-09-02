@@ -183,7 +183,11 @@ export function viewScene(sceneId: string) {
   armScene(sceneId)
 }
 
-/** Fade the scene in. Whatever else is playing fades out, so switching scenes is a crossfade. */
+/**
+ * Fade the scene in. Whatever else is playing fades out, so switching scenes
+ * is a crossfade. Tracks that were not already playing restart: a video from
+ * its beginning, a playlist from the beginning of the song it was last on.
+ */
 export function activateScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return
@@ -199,7 +203,7 @@ export function activateScene(sceneId: string) {
   for (const track of scene.tracks) {
     const player = players.get(track.id)
     if (!player) pendingPlays.set(track.id, FADE_MS)
-    else if (!player.active) player.play(FADE_MS)
+    else if (!player.active) player.play(FADE_MS, true)
   }
 }
 

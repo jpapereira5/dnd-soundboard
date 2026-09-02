@@ -320,10 +320,16 @@ export class TrackPlayer {
   // Public control
   // ---------------------------------------------------------------------
 
-  play(fadeMs: number) {
+  /**
+   * Fade in. With `restart`, playback begins at the start of the current
+   * video instead of resuming where it paused. For a playlist that means
+   * the start of the song that was last playing, not the first song.
+   */
+  play(fadeMs: number, restart = false) {
     if (this.destroyed) return
     const voice = this.voice
     if (!this.ready || !voice.player) {
+      // A player that is not ready yet has nothing to resume, so it starts at 0 anyway.
       this.pendingPlay = fadeMs
       this.onStatus?.('loading')
       return
@@ -331,6 +337,7 @@ export class TrackPlayer {
     this.active = true
     for (const other of this.voices) if (other !== voice) other.cut()
     this.startLoopWatch()
+    if (restart) voice.seekToStart()
     if (!voice.fading && voice.level > 0) {
       voice.player.playVideo()
       this.onStatus?.('playing')
