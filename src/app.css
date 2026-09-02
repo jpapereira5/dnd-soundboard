@@ -10,6 +10,7 @@
   --accent-2: #8c5a2b;
   --danger: #c2453a;
   --ok: #6fbf73;
+  --warn: #e8d24a;
   --radius: 10px;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
@@ -163,11 +164,17 @@ kbd {
   background: var(--accent);
 }
 
-/* Green: sound is on, fading in or out included. */
+/* Green: sound is on, fading in included. */
 .status-dot.fading,
 .status-dot.playing {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
+}
+
+/* Yellow: fading out. */
+.status-dot.stopping {
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
 }
 
 .status-dot.error {

@@ -51,7 +51,8 @@ export interface Session {
   master: number
 }
 
-export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'fading' | 'error'
+/** 'fading' is a fade in; 'stopping' a fade out. */
+export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'fading' | 'stopping' | 'error'
 
 export function uid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36)

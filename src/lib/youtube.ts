@@ -227,6 +227,8 @@ export class TrackPlayer {
   private crossfading = false
   /** true between play() and the end of stop() */
   active = false
+  /** true while a stop() fade out runs; play() cancels it and fades back in. */
+  stopping = false
   gain: number
   master: number
   loop: boolean
@@ -330,7 +332,7 @@ export class TrackPlayer {
       }
       this.emitTitle(voice)
       if (index === this.current && this.active) {
-        this.onStatus?.(voice.fading ? 'fading' : 'playing')
+        this.onStatus?.(this.stopping ? 'stopping' : voice.fading ? 'fading' : 'playing')
         // Buffer the other loop voice now, while this one plays, so the
         // first crossfade starts as promptly as the later ones.
         for (const other of this.voices) if (other !== voice) other.prime()
@@ -432,6 +434,7 @@ export class TrackPlayer {
       return
     }
     this.active = true
+    this.stopping = false
     for (const other of this.voices) if (other !== voice) other.cut()
     this.startLoopWatch()
     voice.unprime()
@@ -458,6 +461,7 @@ export class TrackPlayer {
     voice.cancelFade()
     voice.unprime()
     this.active = true
+    this.stopping = false
     voice.level = 1
     voice.applyVolume()
     voice.player.seekTo(0, true)
@@ -471,10 +475,12 @@ export class TrackPlayer {
     this.stopLoopWatch()
     if (!this.ready || !this.active) {
       this.active = false
+      this.stopping = false
       this.onStatus?.('idle')
       return
     }
-    this.onStatus?.('fading')
+    this.stopping = true
+    this.onStatus?.('stopping')
     const current = this.voice
     for (const voice of this.voices) {
       if (voice === current) continue
@@ -482,6 +488,7 @@ export class TrackPlayer {
     }
     current.fadeTo(0, current.level > 0 ? fadeMs : 0, 'scene', () => {
       this.active = false
+      this.stopping = false
       current.pause()
       this.onStatus?.('idle')
     })

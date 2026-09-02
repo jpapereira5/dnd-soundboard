@@ -14,7 +14,9 @@
         ? 'A carregar'
         : status === 'idle'
           ? 'Armada, pronta a tocar'
-          : track.kind === 'playlist'
+          : status === 'stopping'
+            ? 'Em fade out'
+            : track.kind === 'playlist'
           ? `Playlist · a tocar: ${nowTitle || '—'}`
           : 'Vídeo',
   )

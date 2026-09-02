@@ -211,6 +211,7 @@ function sceneTargets(scene: Scene): Track[] {
 // Playback control
 // ---------------------------------------------------------------------------
 
+/** Sounding and staying: playing or fading in. A fade out no longer counts. */
 export function isPlaying(id: string): boolean {
   const s = runtime.status[id]
   return s === 'playing' || s === 'fading'
@@ -273,7 +274,8 @@ export function stopAll(immediate = false) {
 export function toggleTrack(track: Track) {
   const player = players.get(track.id)
   if (!player) return
-  if (player.active) {
+  // A track fading out is treated as stopped: pressing play brings it back.
+  if (player.active && !player.stopping) {
     player.stop(FADE_MS)
     return
   }
@@ -306,7 +308,10 @@ export function toggleGroup(sceneId: string, group: Group) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return
   const tracks = scene.tracks.filter((t) => t.group === group)
-  const active = tracks.filter((t) => players.get(t.id)?.active)
+  const active = tracks.filter((t) => {
+    const p = players.get(t.id)
+    return p?.active && !p.stopping
+  })
   if (active.length) {
     for (const t of active) players.get(t.id)?.stop(FADE_MS)
     return
