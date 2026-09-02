@@ -42,7 +42,6 @@ function normalize(data: unknown): Session {
         kind: t.kind === 'playlist' ? 'playlist' : 'video',
         title: t.title ?? '',
         volume: clamp(t.volume ?? 70),
-        loop: t.loop ?? true,
         shuffle: t.shuffle ?? false,
       })),
     })),
@@ -233,7 +232,6 @@ export function applyTrackSettings(track: Track) {
   const player = players.get(track.id)
   if (!player) return
   player.setGain(track.volume / 100)
-  player.setLoop(track.loop)
   player.setShuffle(track.shuffle)
 }
 
@@ -292,7 +290,6 @@ export function addTrack(sceneId: string, ytId: string, kind: Kind, title = ''):
     kind,
     title,
     volume: 70,
-    loop: true,
     shuffle: false,
   }
   scene.tracks.push(track)

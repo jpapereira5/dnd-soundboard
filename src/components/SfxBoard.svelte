@@ -63,6 +63,10 @@
     padding: 0.6rem 0.7rem 0.7rem;
     display: grid;
     gap: 0.5rem;
+    min-width: 0;
+  }
+  .body > * {
+    min-width: 0;
   }
   .fire {
     display: flex;

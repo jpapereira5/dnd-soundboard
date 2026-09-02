@@ -5,115 +5,100 @@
 
   let { track, sceneId, armed }: { track: Track; sceneId: string; armed: boolean } = $props()
 
-  const status = $derived(runtime.status[track.id] ?? 'idle')
+  const status = $derived(runtime.status[track.id] ?? (armed ? 'idle' : 'loading'))
   const nowTitle = $derived(runtime.titles[track.id] ?? '')
   const playing = $derived(isPlaying(track.id))
+  const hint = $derived(
+    status === 'error'
+      ? `Erro: ${runtime.errors[track.id]}`
+      : !armed
+        ? 'Por carregar'
+        : track.kind === 'playlist'
+          ? `Playlist · a tocar: ${nowTitle || '—'}`
+          : 'Vídeo',
+  )
+
+  function toggleShuffle() {
+    track.shuffle = !track.shuffle
+    applyTrackSettings(track)
+  }
 </script>
 
-<div class="card track" class:playing>
-  <PlayerHost
-    id={track.id}
-    {armed}
-    options={{ ytId: track.ytId, kind: track.kind, loop: track.loop, shuffle: track.shuffle, volume: track.volume }}
+<div class="card track row" class:playing title={hint}>
+  <PlayerHost id={track.id} {armed} options={{ ytId: track.ytId, kind: track.kind, loop: true, shuffle: track.shuffle, volume: track.volume }} />
+
+  <span class="status-dot {status}"></span>
+  <input
+    class="title"
+    type="text"
+    bind:value={track.title}
+    placeholder={nowTitle || (track.kind === 'playlist' ? 'Playlist' : 'Vídeo')}
   />
-  <div class="body">
-    <div class="row head">
-      <span class="status-dot {status}" title={status}></span>
-      <input
-        class="title"
-        type="text"
-        bind:value={track.title}
-        placeholder={nowTitle || (track.kind === 'playlist' ? 'Playlist' : 'Vídeo')}
-      />
-      <button class="icon danger" title="Remover track" onclick={() => removeTrack(sceneId, track.id)}>✕</button>
-    </div>
+  {#if status === 'error'}
+    <span class="error">{runtime.errors[track.id]}</span>
+  {/if}
 
-    {#if track.kind === 'playlist' && nowTitle}
-      <div class="now muted" title={nowTitle}>♪ {nowTitle}</div>
-    {/if}
-    {#if status === 'error'}
-      <div class="error">Erro: {runtime.errors[track.id]}</div>
-    {/if}
+  <button class="play" class:primary={playing} disabled={!armed || status === 'error'} onclick={() => toggleTrack(track)}>
+    {playing ? '■ Parar' : '▶ Tocar'}
+  </button>
+  {#if track.kind === 'playlist'}
+    <button class="icon" title="Faixa seguinte" disabled={!armed} onclick={() => nextInPlaylist(track)}>⏭</button>
+    <button class="icon" class:primary={track.shuffle} title="Shuffle" onclick={toggleShuffle}>🔀</button>
+  {/if}
 
-    <div class="row">
-      <button class:primary={playing} disabled={!armed || status === 'error'} onclick={() => toggleTrack(track)}>
-        {playing ? '■ Parar' : '▶ Tocar'}
-      </button>
-      {#if track.kind === 'playlist'}
-        <button disabled={!armed} onclick={() => nextInPlaylist(track)}>⏭ Seguinte</button>
-      {/if}
-      <span class="muted kind">{track.kind === 'playlist' ? 'playlist' : 'vídeo'}{#if !armed} · por carregar{/if}</span>
-    </div>
+  <input class="vol" type="range" min="0" max="100" bind:value={track.volume} oninput={() => applyTrackSettings(track)} />
+  <span class="num">{track.volume}</span>
 
-    <label class="vol">
-      <span class="muted">Vol</span>
-      <input type="range" min="0" max="100" bind:value={track.volume} oninput={() => applyTrackSettings(track)} />
-      <span class="num">{track.volume}</span>
-    </label>
-
-    <div class="row opts">
-      <label><input type="checkbox" bind:checked={track.loop} onchange={() => applyTrackSettings(track)} /> Loop</label>
-      {#if track.kind === 'playlist'}
-        <label><input type="checkbox" bind:checked={track.shuffle} onchange={() => applyTrackSettings(track)} /> Shuffle</label>
-      {/if}
-    </div>
-  </div>
+  <button class="icon danger" title="Remover track" onclick={() => removeTrack(sceneId, track.id)}>✕</button>
 </div>
 
 <style>
+  .track {
+    padding: 0.5rem 0.7rem;
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
   .track.playing {
     border-color: var(--accent-2);
     box-shadow: 0 0 0 1px var(--accent-2);
   }
-  .body {
-    padding: 0.7rem 0.8rem 0.8rem;
-    display: grid;
-    gap: 0.5rem;
-  }
-  .head {
-    flex-wrap: nowrap;
-  }
   .title {
     flex: 1;
-    min-width: 0;
+    min-width: 8rem;
     background: transparent;
     border-color: transparent;
     padding-left: 0.3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .title:hover,
   .title:focus {
     border-color: var(--line);
   }
-  .now {
-    font-size: 0.85rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
   .error {
     color: #ffb3ad;
     font-size: 0.85rem;
+    white-space: nowrap;
   }
-  .kind {
-    margin-left: auto;
-    font-size: 0.8rem;
+  .play {
+    width: 6em;
+    white-space: nowrap;
   }
   .vol {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    width: 10rem;
+    flex: 0 0 auto;
   }
   .num {
     width: 2.2em;
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
-  .opts {
-    font-size: 0.9rem;
-  }
-  .opts label {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+  @media (max-width: 700px) {
+    .track {
+      flex-wrap: wrap;
+    }
+    .vol {
+      flex: 1 1 8rem;
+    }
   }
 </style>

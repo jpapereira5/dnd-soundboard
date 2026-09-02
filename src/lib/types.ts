@@ -7,7 +7,7 @@ export interface Track {
   title: string
   /** 0..100 */
   volume: number
-  loop: boolean
+  /** playlists only */
   shuffle: boolean
 }
 
