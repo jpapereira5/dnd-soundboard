@@ -40,6 +40,11 @@ export interface TrackPlayerOptions {
 }
 
 const FADE_STEP_MS = 40
+
+/** Smoothstep: 0 at 0, 1 at 1, zero slope at both ends. */
+function ease(l: number): number {
+  return l * l * (3 - 2 * l)
+}
 /** Overlap between the end of a looping video and its restart. */
 const LOOP_CROSSFADE_MS = FADE_MS
 const LOOP_POLL_MS = 250
@@ -53,14 +58,15 @@ const ERROR_MESSAGES: Record<number, string> = {
 }
 
 /**
- * One YT.Player plus its own fade envelope (`level`, 0..1).
- * Volume applied = 100 * gain * master * level. The envelope is linear:
- * YouTube's volume scale is already close to perceptual, so squaring the
- * level (as before) kept the sound near silence for most of the fade and
- * then jumped at the end. `gain` already carries the slider curve (see
- * `sliderToGain`), so a track near the bottom of its slider ends up well
- * below 1 here. The value is passed unrounded: a whole-number step from
- * 0 to 1 is too coarse at the quiet end.
+ * One YT.Player plus its own fade envelope (`level`, 0..1, linear in time).
+ * Volume applied = 100 * gain * master * ease(level), where ease is an
+ * S-curve (smoothstep): a soft start, most of the change in the middle,
+ * and a soft landing. A plain linear ramp brought the sound in too
+ * abruptly on YouTube's near-perceptual scale; a squared one kept it
+ * silent for most of the fade and then jumped. ease(l) + ease(1 - l) = 1,
+ * so a crossfade still sums to a constant. `gain` already carries the
+ * slider curve (see `sliderToGain`). The value is passed unrounded: a
+ * whole-number step from 0 to 1 is too coarse at the quiet end.
  */
 class Voice {
   player: YT.Player | null = null
@@ -239,7 +245,7 @@ export class TrackPlayer {
   }
 
   private createVoice(host: HTMLElement, index: number) {
-    const voice = new Voice((level) => 100 * this.gain * this.master * level)
+    const voice = new Voice((level) => 100 * this.gain * this.master * ease(level))
     this.voices.push(voice)
     // The API replaces the target element with the iframe, so give it a
     // throwaway child rather than a node Svelte owns.
