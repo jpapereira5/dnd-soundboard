@@ -78,8 +78,6 @@ export const runtime = $state({
   viewSceneId: session.scenes[0]?.id ?? null,
   /** Scene that was last activated (crossfaded in). */
   activeSceneId: null as string | null,
-  /** Scenes whose players have been created. */
-  armed: session.scenes[0] ? [session.scenes[0].id] : ([] as string[]),
   status: {} as Record<string, PlayerStatus>,
   errors: {} as Record<string, string>,
   titles: {} as Record<string, string>,
@@ -174,13 +172,8 @@ export function isPlaying(id: string): boolean {
   return s === 'playing' || s === 'fading'
 }
 
-export function armScene(sceneId: string) {
-  if (!runtime.armed.includes(sceneId)) runtime.armed.push(sceneId)
-}
-
 export function viewScene(sceneId: string) {
   runtime.viewSceneId = sceneId
-  armScene(sceneId)
 }
 
 /**
@@ -191,7 +184,6 @@ export function viewScene(sceneId: string) {
 export function activateScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return
-  armScene(sceneId)
   runtime.activeSceneId = sceneId
   runtime.viewSceneId = sceneId
   const wanted = new Set(scene.tracks.map((t) => t.id))
@@ -275,13 +267,8 @@ export function removeScene(sceneId: string) {
   if (index < 0) return
   for (const track of session.scenes[index].tracks) unregisterPlayer(track.id)
   session.scenes.splice(index, 1)
-  runtime.armed = runtime.armed.filter((id) => id !== sceneId)
   if (runtime.activeSceneId === sceneId) runtime.activeSceneId = null
-  if (runtime.viewSceneId === sceneId) {
-    const next = session.scenes[Math.max(0, index - 1)]
-    runtime.viewSceneId = next?.id ?? null
-    if (next) armScene(next.id)
-  }
+  if (runtime.viewSceneId === sceneId) runtime.viewSceneId = session.scenes[Math.max(0, index - 1)]?.id ?? null
 }
 
 /** Moves a scene so it ends up at `target` in the list (clamped). Used by tab drag and drop. */
@@ -348,8 +335,6 @@ export async function importSession(file: File) {
   session.scenes = data.scenes
   session.sfx = data.sfx
   session.master = data.master
-  runtime.armed = []
   runtime.activeSceneId = null
   runtime.viewSceneId = session.scenes[0]?.id ?? null
-  if (runtime.viewSceneId) armScene(runtime.viewSceneId)
 }

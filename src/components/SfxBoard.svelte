@@ -15,7 +15,7 @@
     {#each session.sfx as sfx, i (sfx.id)}
       {@const status = runtime.status[sfx.id] ?? 'idle'}
       <div class="card" class:playing={status === 'playing'}>
-        <PlayerHost id={sfx.id} armed={true} options={{ ytId: sfx.ytId, kind: 'video', loop: false, shuffle: false, volume: sfx.volume }} />
+        <PlayerHost id={sfx.id} options={{ ytId: sfx.ytId, kind: 'video', loop: false, shuffle: false, volume: sfx.volume }} />
         <div class="body">
           <button class="fire primary" disabled={status === 'error' || status === 'loading'} onclick={() => playSfx(sfx)}>
             {#if SFX_KEYS[i]}<kbd>{SFX_KEYS[i].toUpperCase()}</kbd>{/if}

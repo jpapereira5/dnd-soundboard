@@ -3,16 +3,16 @@
   import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist } from '../lib/state.svelte'
   import PlayerHost from './PlayerHost.svelte'
 
-  let { track, sceneId, armed }: { track: Track; sceneId: string; armed: boolean } = $props()
+  let { track, sceneId }: { track: Track; sceneId: string } = $props()
 
-  const status = $derived(runtime.status[track.id] ?? (armed ? 'idle' : 'loading'))
+  const status = $derived(runtime.status[track.id] ?? 'loading')
   const nowTitle = $derived(runtime.titles[track.id] ?? '')
   const playing = $derived(isPlaying(track.id))
   const hint = $derived(
     status === 'error'
       ? `Erro: ${runtime.errors[track.id]}`
-      : !armed
-        ? 'Por carregar'
+      : status === 'loading'
+        ? 'A carregar'
         : track.kind === 'playlist'
           ? `Playlist · a tocar: ${nowTitle || '—'}`
           : 'Vídeo',
@@ -25,7 +25,7 @@
 </script>
 
 <div class="card track row" class:playing title={hint}>
-  <PlayerHost id={track.id} {armed} options={{ ytId: track.ytId, kind: track.kind, loop: true, shuffle: track.shuffle, volume: track.volume }} />
+  <PlayerHost id={track.id} options={{ ytId: track.ytId, kind: track.kind, loop: true, shuffle: track.shuffle, volume: track.volume }} />
 
   <span class="status-dot {status}"></span>
   <input
@@ -38,11 +38,11 @@
     <span class="error">{runtime.errors[track.id]}</span>
   {/if}
 
-  <button class="play" class:primary={playing} disabled={!armed || status === 'error'} onclick={() => toggleTrack(track)}>
+  <button class="play" class:primary={playing} disabled={status === 'error'} onclick={() => toggleTrack(track)}>
     {playing ? '■ Parar' : '▶ Tocar'}
   </button>
   {#if track.kind === 'playlist'}
-    <button class="icon" title="Faixa seguinte" disabled={!armed} onclick={() => nextInPlaylist(track)}>⏭</button>
+    <button class="icon" title="Faixa seguinte" onclick={() => nextInPlaylist(track)}>⏭</button>
     <button class="icon" class:primary={track.shuffle} title="Shuffle" onclick={toggleShuffle}>🔀</button>
   {/if}
 

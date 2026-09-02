@@ -6,7 +6,6 @@
 
   let { scene }: { scene: Scene } = $props()
 
-  const armed = $derived(runtime.armed.includes(scene.id))
   const active = $derived(runtime.activeSceneId === scene.id)
 
   function remove() {
@@ -32,7 +31,7 @@
 
   <div class="grid">
     {#each scene.tracks as track (track.id)}
-      <TrackCard {track} sceneId={scene.id} {armed} />
+      <TrackCard {track} sceneId={scene.id} />
     {/each}
   </div>
 
