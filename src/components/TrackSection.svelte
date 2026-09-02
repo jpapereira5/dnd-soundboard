@@ -81,7 +81,7 @@
       <!-- Empty group: its add form sits in the row. More tracks go through the scene's Adicionar box. -->
       <AddMediaForm
         allowPlaylist
-        actions={[{ label: `+ ${meta.label}`, onadd: (ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title) }]}
+        actions={[{ label: '+', onadd: (ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title) }]}
       />
     {/if}
     {#each tracks as track, i (track.id)}

@@ -12,7 +12,7 @@
     <h3>Efeitos</h3>
     <div class="content">
       {#if scene.sfx.length === 0}
-        <AddMediaForm actions={[{ label: '+ Efeito', videoOnly: true, onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
+        <AddMediaForm actions={[{ label: '+', videoOnly: true, onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
       {:else}
         <div class="grid">
           {#each scene.sfx as sfx, i (sfx.id)}
