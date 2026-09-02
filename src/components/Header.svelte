@@ -43,6 +43,7 @@
       <li><kbd>Esc</kbd> ou <kbd>0</kbd> fazem fade out a tudo.</li>
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>Todas as tracks carregam ao abrir a página e ficam pré-carregadas em silêncio, prontas a arrancar sem atraso.</li>
+      <li>Círculo à esquerda de cada track: cinzento a carregar, laranja armada e pronta, laranja a pulsar em fade, verde a tocar, vermelho erro.</li>
       <li>Tudo fica guardado neste browser. Usa Exportar para levar a sessão para outro computador.</li>
     </ul>
   </aside>

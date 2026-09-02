@@ -17,7 +17,7 @@
       <div class="card" class:playing={status === 'playing'}>
         <PlayerHost id={sfx.id} options={{ ytId: sfx.ytId, kind: 'video', loop: false, shuffle: false, volume: sfx.volume }} />
         <div class="body">
-          <button class="fire primary" disabled={status === 'error' || status === 'loading'} onclick={() => playSfx(sfx)}>
+          <button class="fire primary" disabled={status === 'error'} onclick={() => playSfx(sfx)}>
             {#if SFX_KEYS[i]}<kbd>{SFX_KEYS[i].toUpperCase()}</kbd>{/if}
             <span class="label">{sfx.title || runtime.titles[sfx.id] || 'Efeito'}</span>
           </button>

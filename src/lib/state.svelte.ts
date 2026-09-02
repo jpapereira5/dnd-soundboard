@@ -246,6 +246,14 @@ export function setMaster(value: number) {
   for (const player of players.values()) player.setMaster(session.master / 100)
 }
 
+/**
+ * Browsers that refuse muted playback before a user gesture leave players
+ * unbuffered; call this on the first click or key press to retry.
+ */
+export function primeAll() {
+  for (const player of players.values()) player.prime()
+}
+
 export function playSfx(sfx: Sfx) {
   players.get(sfx.id)?.playOnce()
 }

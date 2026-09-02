@@ -13,7 +13,9 @@
       ? `Erro: ${runtime.errors[track.id]}`
       : status === 'loading'
         ? 'A carregar'
-        : track.kind === 'playlist'
+        : status === 'idle'
+          ? 'Armada, pronta a tocar'
+          : track.kind === 'playlist'
           ? `Playlist · a tocar: ${nowTitle || '—'}`
           : 'Vídeo',
   )

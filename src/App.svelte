@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { session, runtime, activateScene, stopAll, playSfx } from './lib/state.svelte'
+  import { session, runtime, activateScene, stopAll, playSfx, primeAll } from './lib/state.svelte'
   import { SCENE_KEYS, SFX_KEYS, isTypingTarget } from './lib/hotkeys'
   import Header from './components/Header.svelte'
   import SceneTabs from './components/SceneTabs.svelte'
@@ -34,7 +34,7 @@
   }
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} onpointerdowncapture={primeAll} onkeydowncapture={primeAll} />
 
 <Header />
 <SceneTabs />

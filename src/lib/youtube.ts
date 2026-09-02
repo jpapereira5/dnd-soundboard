@@ -300,7 +300,7 @@ export class TrackPlayer {
       this.pendingPlay = null
       this.play(fade)
     } else {
-      this.onStatus?.('idle')
+      // Stays 'loading' until the priming run has buffered the video.
       voice.prime()
     }
   }
@@ -310,7 +310,11 @@ export class TrackPlayer {
     const voice = this.voices[index]
     const S = YT.PlayerState
     if (state === S.PLAYING) {
-      if (voice.handlePlaying()) return
+      if (voice.handlePlaying()) {
+        // Priming done: the track is armed and can start without delay.
+        if (index === this.current && !this.active) this.onStatus?.('idle')
+        return
+      }
       this.emitTitle(voice)
       if (index === this.current && this.active) {
         this.onStatus?.(voice.fading ? 'fading' : 'playing')
@@ -468,6 +472,12 @@ export class TrackPlayer {
       current.pause()
       this.onStatus?.('idle')
     })
+  }
+
+  /** Buffer every voice that has not played yet. Retried after the first user gesture. */
+  prime() {
+    if (this.destroyed || this.active) return
+    for (const voice of this.voices) voice.prime()
   }
 
   setGain(gain: number) {
