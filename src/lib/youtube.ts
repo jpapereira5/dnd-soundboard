@@ -235,6 +235,10 @@ export class TrackPlayer {
   shuffle: boolean
   readonly kind: Kind
   readonly ytId: string
+  private host: HTMLElement
+  /** Automatic reloads after a transient player error (code 5). */
+  private reloads = 0
+  private reloadTimer: number | null = null
   private onStatus?: TrackPlayerOptions['onStatus']
   private onTitle?: TrackPlayerOptions['onTitle']
 
@@ -247,10 +251,37 @@ export class TrackPlayer {
     this.master = opts.master
     this.onStatus = opts.onStatus
     this.onTitle = opts.onTitle
+    this.host = host
+    this.createVoices()
+  }
 
+  private createVoices() {
     const voiceCount = this.kind === 'video' && this.loop ? 2 : 1
     this.onStatus?.('loading')
-    for (let i = 0; i < voiceCount; i++) this.createVoice(host, i)
+    for (let i = 0; i < voiceCount; i++) this.createVoice(this.host, i)
+  }
+
+  /**
+   * Throw the YouTube players away and build them again from scratch.
+   * Used after "erro do leitor HTML5" (code 5), which the player never
+   * recovers from on its own but which a fresh load usually clears.
+   */
+  reload() {
+    if (this.destroyed) return
+    if (this.reloadTimer !== null) {
+      clearTimeout(this.reloadTimer)
+      this.reloadTimer = null
+    }
+    this.stopLoopWatch()
+    this.active = false
+    this.stopping = false
+    this.pendingPlay = null
+    this.ready = false
+    this.current = 0
+    for (const voice of this.voices) voice.destroy()
+    this.voices = []
+    this.host.replaceChildren()
+    this.createVoices()
   }
 
   private createVoice(host: HTMLElement, index: number) {
@@ -360,6 +391,15 @@ export class TrackPlayer {
     this.active = false
     this.stopLoopWatch()
     this.onStatus?.('error', ERROR_MESSAGES[code] ?? `erro ${code}`)
+    // Code 5 is usually transient (many players loading at once). Retry a
+    // few times with growing delays; the card also offers a manual retry.
+    if (code === 5 && this.reloads < 3 && this.reloadTimer === null) {
+      this.reloads += 1
+      this.reloadTimer = window.setTimeout(() => {
+        this.reloadTimer = null
+        this.reload()
+      }, 1500 * this.reloads)
+    }
   }
 
   private emitTitle(voice: Voice) {
@@ -526,6 +566,7 @@ export class TrackPlayer {
 
   destroy() {
     this.destroyed = true
+    if (this.reloadTimer !== null) clearTimeout(this.reloadTimer)
     this.stopLoopWatch()
     for (const voice of this.voices) voice.destroy()
     this.voices = []

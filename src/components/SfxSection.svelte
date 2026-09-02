@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, playSfx, addSfx, removeSfx, applySfxVolume } from '../lib/state.svelte'
+  import { runtime, playSfx, addSfx, removeSfx, applySfxVolume, retryPlayer } from '../lib/state.svelte'
   import { SFX_KEYS } from '../lib/hotkeys'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -24,7 +24,10 @@
                   <span class="label">{sfx.title || runtime.titles[sfx.id] || 'Efeito'}</span>
                 </button>
                 {#if status === 'error'}
-                  <div class="error">Erro: {runtime.errors[sfx.id]}</div>
+                  <div class="error">
+                    Erro: {runtime.errors[sfx.id]}
+                    <button class="icon" title="Tentar carregar de novo" onclick={() => retryPlayer(sfx.id)}>↻</button>
+                  </div>
                 {/if}
                 <div class="row">
                   <input class="name" type="text" bind:value={sfx.title} placeholder="Nome" />

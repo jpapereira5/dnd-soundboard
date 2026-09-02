@@ -362,6 +362,12 @@ export function setAmbienceMaster(value: number) {
  * Browsers that refuse muted playback before a user gesture leave players
  * unbuffered; call this on the first click or key press to retry.
  */
+/** Manual retry after a player error: rebuilds that track's YouTube players. */
+export function retryPlayer(id: string) {
+  delete runtime.errors[id]
+  players.get(id)?.reload()
+}
+
 export function primeAll() {
   for (const player of players.values()) player.prime()
 }

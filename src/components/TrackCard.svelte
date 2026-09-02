@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Track } from '../lib/types'
-  import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist } from '../lib/state.svelte'
+  import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer } from '../lib/state.svelte'
 
   let { track, sceneId }: { track: Track; sceneId: string } = $props()
 
@@ -38,6 +38,7 @@
   />
   {#if status === 'error'}
     <span class="error">{runtime.errors[track.id]}</span>
+    <button class="icon" title="Tentar carregar de novo" onclick={() => retryPlayer(track.id)}>↻</button>
   {/if}
 
   <button class="play" class:primary={playing} disabled={status === 'error'} onclick={() => toggleTrack(track)}>
