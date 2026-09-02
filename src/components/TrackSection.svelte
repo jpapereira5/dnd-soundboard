@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { runtime, moveTrackTo, toggleGroup, groupPlaying, addTrack } from '../lib/state.svelte'
+  import { runtime, moveTrackTo, toggleGroup, groupPlaying, groupStopping, addTrack } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -11,6 +11,8 @@
   const tracks = $derived(scene.tracks.filter((t) => t.group === group))
   /** The heading is a toggle: off plays the group's first track, on fades the group out. */
   const on = $derived(groupPlaying(scene, group))
+  /** Fading out: shown greyed until the fade ends. */
+  const dim = $derived(groupStopping(scene, group))
 
   // Any track can be dragged by its grip to another spot in its group or
   // into another group of the scene. The drag id is shared through runtime
@@ -68,6 +70,7 @@
   <button
     class="head"
     class:primary={on}
+    class:dim
     disabled={tracks.length === 0}
     title={on
       ? `Fade out a ${meta.label.toLowerCase()}`
@@ -112,6 +115,9 @@
     font-size: 1rem;
     font-weight: 600;
     text-align: center;
+  }
+  .head.dim {
+    opacity: 0.5;
   }
   .body {
     position: relative;

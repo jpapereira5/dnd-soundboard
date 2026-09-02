@@ -294,9 +294,14 @@ export function toggleTrack(track: Track) {
   player.play(FADE_MS)
 }
 
-/** Any track of this group is sounding (playing or fading). */
+/** Any track of this group is playing or fading in. */
 export function groupPlaying(scene: Scene, group: Group): boolean {
   return scene.tracks.some((t) => t.group === group && isPlaying(t.id))
+}
+
+/** The group is on its way out: a track fading out and none playing. */
+export function groupStopping(scene: Scene, group: Group): boolean {
+  return !groupPlaying(scene, group) && scene.tracks.some((t) => t.group === group && runtime.status[t.id] === 'stopping')
 }
 
 /**

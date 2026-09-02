@@ -7,6 +7,8 @@
   const status = $derived(runtime.status[track.id] ?? 'loading')
   const nowTitle = $derived(runtime.titles[track.id] ?? '')
   const playing = $derived(isPlaying(track.id))
+  /** Sound is coming out: playing, fading in or fading out. Lights the card up. */
+  const sounding = $derived(playing || status === 'stopping')
   const hint = $derived(
     status === 'error'
       ? `Erro: ${runtime.errors[track.id]}`
@@ -27,7 +29,7 @@
   }
 </script>
 
-<div class="card track row" class:playing title={hint}>
+<div class="card track row" class:playing={sounding} title={hint}>
 
   <span class="status-dot {status}"></span>
   <input
