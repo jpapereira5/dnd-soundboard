@@ -6,6 +6,11 @@
   import ScenePanel from './components/ScenePanel.svelte'
   import SfxBoard from './components/SfxBoard.svelte'
 
+  // Panels keep a fixed DOM order whatever the tab order. Only one is
+  // visible at a time, and moving a panel would move its YouTube iframes,
+  // which the browser reloads, killing whatever that scene was playing.
+  const panels = $derived([...session.scenes].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)))
+
   function onKeydown(e: KeyboardEvent) {
     if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return
     const key = e.key.toLowerCase()
@@ -35,7 +40,7 @@
 <SceneTabs />
 
 <main>
-  {#each session.scenes as scene (scene.id)}
+  {#each panels as scene (scene.id)}
     <!-- Every scene stays mounted so crossfades between scenes keep both sets of players alive. -->
     <div hidden={runtime.viewSceneId !== scene.id}>
       <ScenePanel {scene} />
