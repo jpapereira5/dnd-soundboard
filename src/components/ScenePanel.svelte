@@ -27,13 +27,13 @@
   </div>
 
   <div class="sections">
-    <div class="box">
-      <TrackSection {scene} group="ambience" />
-    </div>
     <!-- Music and battle share a box: one plays or the other. -->
     <div class="box stack">
       <TrackSection {scene} group="music" />
       <TrackSection {scene} group="battle" />
+    </div>
+    <div class="box">
+      <TrackSection {scene} group="ambience" />
     </div>
     <div class="box">
       <SfxSection {scene} />
