@@ -21,8 +21,7 @@
     <input class="name" type="text" bind:value={scene.name} />
     <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
     <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
-    <label class="fade">
-      <span class="muted">Fade</span>
+    <label class="fade" title="Tempo de fade in e fade out da cena">
       <input
         type="number"
         min="0"
