@@ -248,7 +248,7 @@ export function activateScene(sceneId: string) {
  * fades in, or the reverse; ambience keeps playing. On a scene that is not
  * active this also activates it, straight into the chosen mode.
  */
-export function setBattle(sceneId: string, on: boolean) {
+function setBattle(sceneId: string, on: boolean) {
   runtime.battle = on
   startScene(sceneId)
 }
@@ -276,9 +276,26 @@ export function stopAll(immediate = false) {
 export function toggleTrack(track: Track) {
   const player = players.get(track.id)
   if (!player) return
-  const fade = fadeFor(track.id)
-  if (player.active) player.stop(fade)
-  else player.play(fade)
+  if (player.active) {
+    player.stop(FADE_MS)
+    return
+  }
+  if (track.group !== 'ambience') {
+    const scene = session.scenes.find((s) => s.tracks.includes(track))
+    if (scene && runtime.activeSceneId === scene.id) {
+      // Playing music or battle in the active scene switches the mode:
+      // the other group fades out while this one fades in.
+      setBattle(scene.id, track.group === 'battle')
+      return
+    }
+    // Scene not active: still never let music and battle overlap.
+    for (const other of scene?.tracks ?? []) {
+      if (other.group === 'ambience' || other.group === track.group) continue
+      const p = players.get(other.id)
+      if (p?.active) p.stop(FADE_MS)
+    }
+  }
+  player.play(FADE_MS)
 }
 
 export function nextInPlaylist(track: Track) {

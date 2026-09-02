@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { runtime, groupIsOn, setBattle, addTrack } from '../lib/state.svelte'
+  import { groupIsOn, addTrack } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -14,27 +14,15 @@
   const canAdd = $derived(!single || tracks.length === 0)
   /** This group is sounding in the active scene. */
   const on = $derived(groupIsOn(scene.id, group))
-  const sceneActive = $derived(runtime.activeSceneId === scene.id)
+  const hint = $derived(
+    on ? 'a tocar' : group === 'ambience' ? 'toca sempre com a cena' : group === 'battle' ? 'tocar substitui a música' : 'tocar substitui a batalha',
+  )
 </script>
 
 <section class="group" class:on class:single>
   <div class="row head">
     <h3>{meta.label}</h3>
-    {#if single}
-      <button
-        class:primary={on}
-        title={on
-          ? `${meta.label} a tocar`
-          : sceneActive
-            ? `Fade out ao que toca agora, fade in a ${meta.label.toLowerCase()}`
-            : `Ativar a cena já em ${meta.label.toLowerCase()}`}
-        onclick={() => setBattle(scene.id, group === 'battle')}
-      >
-        {group === 'battle' ? '⚔️ Batalha' : '🎵 Música'}
-      </button>
-    {:else}
-      <span class="muted hint">{on ? 'a tocar' : 'toca sempre com a cena'}</span>
-    {/if}
+    <span class="muted hint">{hint}</span>
   </div>
 
   <div class="body">
@@ -66,7 +54,11 @@
   h3 {
     margin: 0;
     font-size: 1rem;
-    min-width: 6rem;
+    min-width: 5rem;
+  }
+  .single .head {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
   }
   .hint {
     font-size: 0.85rem;
@@ -92,7 +84,6 @@
   }
   .single .head {
     margin: 0;
-    flex: 0 0 auto;
   }
   .single .body {
     flex: 1 1 24rem;
