@@ -30,6 +30,7 @@
     <!-- Music and battle share a box: one plays or the other. -->
     <div class="box stack">
       <TrackSection {scene} group="music" />
+      <hr />
       <TrackSection {scene} group="battle" />
     </div>
     <div class="box">
@@ -76,5 +77,10 @@
   .stack {
     display: grid;
     gap: 0.6rem;
+  }
+  hr {
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--line);
   }
 </style>
