@@ -14,7 +14,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 
 - Só funciona com o leitor oficial do YouTube (IFrame API). Não há acesso ao áudio bruto, logo não há equalizador.
 - Vídeos monetizados podem mostrar anúncios. YouTube Premium na conta do browser resolve.
-- Os termos do YouTube exigem que o leitor seja visível, por isso cada track mostra o vídeo por omissão. O botão "Vídeo oculto" (tecla `V`) colapsa os leitores mantendo o som. É opt-in e fica por tua conta.
+- Os termos do YouTube exigem que o leitor seja visível, por isso cada track mostra o vídeo por omissão. A tecla `V` colapsa os leitores mantendo o som. É opt-in e fica por tua conta.
 - O browser só deixa tocar som depois de um clique na página.
 - Loop de um único vídeo tem um pequeno silêncio ao reiniciar. Playlists em loop não têm esse problema.
 - Pensado para desktop. Browsers móveis bloqueiam vários leitores em simultâneo.

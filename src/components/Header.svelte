@@ -34,13 +34,6 @@
   <span class="grow"></span>
 
   <button class="danger" onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
-  <button
-    class:primary={session.hideVideo}
-    title="Esconde a imagem de todos os leitores. O som continua."
-    onclick={() => (session.hideVideo = !session.hideVideo)}
-  >
-    {session.hideVideo ? '🙈 Vídeo oculto' : '👁 Vídeo visível'} <kbd>V</kbd>
-  </button>
   <button onclick={exportSession}>Exportar</button>
   <button onclick={() => fileInput?.click()}>Importar</button>
   <input type="file" accept="application/json" hidden bind:this={fileInput} onchange={onImport} />
