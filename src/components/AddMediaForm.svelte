@@ -2,11 +2,10 @@
   import { parseYouTube } from '../lib/url'
   import type { Kind } from '../lib/types'
 
-  let {
-    label,
-    allowPlaylist = false,
-    onadd,
-  }: { label: string; allowPlaylist?: boolean; onadd: (ytId: string, kind: Kind, title: string) => void } = $props()
+  type Add = (ytId: string, kind: Kind, title: string) => void
+
+  /** One submit button per action, e.g. "+ Música" and "+ Batalha" on the same form. */
+  let { actions, allowPlaylist = false }: { actions: { label: string; onadd: Add }[]; allowPlaylist?: boolean } = $props()
 
   let url = $state('')
   let title = $state('')
@@ -18,8 +17,11 @@
     return allowPlaylist && !!p?.videoId && !!p?.playlistId
   })
 
+  let chosen = $state(0)
+
   function submit(e: Event) {
     e.preventDefault()
+    const onadd = actions[chosen]?.onadd ?? actions[0].onadd
     const p = parseYouTube(url)
     if (!p) {
       error = 'Link do YouTube inválido'
@@ -48,7 +50,9 @@
       <option value="video">só este vídeo</option>
     </select>
   {/if}
-  <button type="submit" class="primary">{label}</button>
+  {#each actions as action, i}
+    <button type="submit" class="primary" onclick={() => (chosen = i)}>{action.label}</button>
+  {/each}
   {#if error}
     <span class="error">{error}</span>
   {/if}

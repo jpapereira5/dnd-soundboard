@@ -36,7 +36,7 @@
     {/each}
   </div>
 
-  <AddMediaForm label="Adicionar" onadd={(ytId, _kind, title) => addSfx(scene.id, ytId, title)} />
+  <AddMediaForm actions={[{ label: 'Adicionar', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
 </section>
 
 <style>

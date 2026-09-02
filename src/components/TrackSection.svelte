@@ -1,18 +1,16 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { runtime, addTrack, moveTrackTo, toggleGroup, groupPlaying } from '../lib/state.svelte'
+  import { runtime, moveTrackTo, toggleGroup, groupPlaying } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
-  import AddMediaForm from './AddMediaForm.svelte'
 
   let { scene, group }: { scene: Scene; group: Group } = $props()
 
   const meta = $derived(GROUPS.find((g) => g.id === group)!)
   const tracks = $derived(scene.tracks.filter((t) => t.group === group))
-  /** Music and battle sit on one line and only offer the add form while empty. */
-  const single = $derived(group !== 'ambience')
-  const canAdd = $derived(!single || tracks.length === 0)
-  const on = $derived(single && groupPlaying(scene, group))
+  /** Music and battle headings are toggle buttons; ambience is a plain heading. */
+  const toggle = $derived(group !== 'ambience')
+  const on = $derived(toggle && groupPlaying(scene, group))
 
   // Any track can be dragged by its grip to another spot in its group or
   // into another group of the scene. The drag id is shared through runtime
@@ -64,8 +62,10 @@
   }
 </script>
 
-<div class="group" class:single>
-  {#if single}
+<!-- Heading and tracks on one line; the whole row is a drop target, so an empty group can receive a track. -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="group" ondragover={onDragOver} ondrop={onDrop} ondragleave={onDragLeave}>
+  {#if toggle}
     <button
       class="head"
       class:primary={on}
@@ -74,10 +74,9 @@
       onclick={() => toggleGroup(scene.id, group)}>{meta.label}</button
     >
   {:else}
-    <h3>{meta.label}</h3>
+    <h3 class="head">{meta.label}</h3>
   {/if}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="body" class:drop-end={dropAt === tracks.length} ondragover={onDragOver} ondrop={onDrop} ondragleave={onDragLeave}>
+  <div class="body" class:drop-end={dropAt === tracks.length}>
     {#each tracks as track, i (track.id)}
       <div class="item" data-index={i} class:dragging={runtime.dragTrackId === track.id} class:drop-before={dropAt === i}>
         <span
@@ -90,22 +89,34 @@
         <TrackCard {track} sceneId={scene.id} />
       </div>
     {/each}
-    {#if canAdd}
-      <AddMediaForm label="Adicionar" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title)} />
-    {/if}
   </div>
 </div>
 
 <style>
-  h3 {
-    margin: 0 0 0.6rem;
+  .group {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .head {
+    flex: 0 0 6rem;
+    margin: 0;
     font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  h3.head {
+    text-align: left;
+    padding-left: 0.8rem;
   }
   .body {
     position: relative;
+    flex: 1 1 24rem;
+    min-width: 0;
     display: grid;
     gap: 0.5rem;
-    /* Room for the insertion bar at the end and for drops into an empty group. */
+    /* Room for the insertion bar and for drops into an empty group. */
     min-height: 1.5rem;
   }
   .item {
@@ -149,28 +160,5 @@
   }
   .body.drop-end::after {
     bottom: -0.35rem;
-  }
-  .group :global(form.add) {
-    margin-top: 0.6rem;
-  }
-
-  /* Single-track groups: heading and the track on one line. */
-  .single {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    flex-wrap: wrap;
-  }
-  .single .head {
-    flex: 0 0 6rem;
-    font-weight: 600;
-    text-align: center;
-  }
-  .single .body {
-    flex: 1 1 24rem;
-    min-width: 0;
-  }
-  .single :global(form.add) {
-    margin-top: 0;
   }
 </style>

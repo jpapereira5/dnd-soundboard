@@ -1,12 +1,19 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, addTrack } from '../lib/state.svelte'
+  import type { Group } from '../lib/types'
   import TrackSection from './TrackSection.svelte'
   import SfxSection from './SfxSection.svelte'
+  import AddMediaForm from './AddMediaForm.svelte'
 
   let { scene }: { scene: Scene } = $props()
 
   const active = $derived(runtime.activeSceneId === scene.id)
+
+  const adder = (label: string, group: Group) => ({
+    label,
+    onadd: (ytId: string, kind: 'video' | 'playlist', title: string) => addTrack(scene.id, group, ytId, kind, title),
+  })
 
   function remove() {
     const n = scene.tracks.length + scene.sfx.length
@@ -32,9 +39,11 @@
       <TrackSection {scene} group="music" />
       <hr />
       <TrackSection {scene} group="battle" />
+      <AddMediaForm allowPlaylist actions={[adder('+ Música', 'music'), adder('+ Batalha', 'battle')]} />
     </div>
-    <div class="box">
+    <div class="box stack">
       <TrackSection {scene} group="ambience" />
+      <AddMediaForm allowPlaylist actions={[adder('+ Ambiente', 'ambience')]} />
     </div>
     <div class="box">
       <SfxSection {scene} />
@@ -77,6 +86,9 @@
   .stack {
     display: grid;
     gap: 0.6rem;
+  }
+  .stack :global(form.add) {
+    margin-top: 0.2rem;
   }
   hr {
     margin: 0;
