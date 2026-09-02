@@ -10,6 +10,7 @@ function defaultSession(): Session {
     version: 2,
     scenes: [{ id: uid(), name: 'Taberna', tracks: [], sfx: [] }],
     master: 80,
+    ambienceMaster: 100,
   }
 }
 
@@ -63,7 +64,7 @@ function normalize(data: unknown): Session {
     if (!scenes.length) scenes.push({ id: uid(), name: 'Cena', tracks: [], sfx: [] })
     scenes[0].sfx.push(...legacySfx)
   }
-  return { version: 2, scenes, master: clamp(d.master ?? 80) }
+  return { version: 2, scenes, master: clamp(d.master ?? 80), ambienceMaster: clamp(d.ambienceMaster ?? 100) }
 }
 
 function clamp(v: number): number {
@@ -140,7 +141,7 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
     loop: opts.loop,
     shuffle: opts.shuffle,
     gain: sliderToGain(opts.volume),
-    master: untrack(() => session.master) / 100,
+    master: untrack(() => masterFor(id)),
     onStatus: (status, detail) => {
       runtime.status[id] = status
       if (status === 'error') runtime.errors[id] = detail ?? 'erro'
@@ -336,9 +337,25 @@ export function applySfxVolume(sfx: Sfx) {
   players.get(sfx.id)?.setGain(sliderToGain(sfx.volume))
 }
 
+/** Master gain for a player: the global master, times the ambience master for ambience tracks. */
+function masterFor(id: string): number {
+  const m = session.master / 100
+  return findTrack(id)?.group === 'ambience' ? m * (session.ambienceMaster / 100) : m
+}
+
+function applyMasters() {
+  for (const [id, player] of players) player.setMaster(masterFor(id))
+}
+
 export function setMaster(value: number) {
   session.master = clamp(value)
-  for (const player of players.values()) player.setMaster(session.master / 100)
+  applyMasters()
+}
+
+/** Second master that only scales ambience tracks, so they can sit under the music. */
+export function setAmbienceMaster(value: number) {
+  session.ambienceMaster = clamp(value)
+  applyMasters()
 }
 
 /**
@@ -411,6 +428,8 @@ export function moveTrackTo(sceneId: string, trackId: string, group: Group, targ
   const track = scene?.tracks.find((t) => t.id === trackId)
   if (!scene || !track) return
   track.group = group
+  // The ambience master applies by group, so a moved track picks up the right one.
+  players.get(trackId)?.setMaster(masterFor(trackId))
   const members = scene.tracks.filter((t) => t.group === group && t.id !== trackId)
   target = Math.max(0, Math.min(members.length, target))
   members.splice(target, 0, track)
@@ -460,6 +479,7 @@ export async function importSession(file: File) {
   for (const id of [...players.keys()]) unregisterPlayer(id)
   session.scenes = data.scenes
   session.master = data.master
+  session.ambienceMaster = data.ambienceMaster
   runtime.activeSceneId = null
   runtime.battle = false
   runtime.viewSceneId = session.scenes[0]?.id ?? null

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { session, runtime, setMaster, stopAll, exportSession, importSession } from '../lib/state.svelte'
+  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession } from '../lib/state.svelte'
 
   let fileInput = $state<HTMLInputElement>()
 
@@ -23,6 +23,12 @@
     <span class="muted">Master</span>
     <input type="range" min="0" max="100" value={session.master} oninput={(e) => setMaster(Number(e.currentTarget.value))} />
     <span class="num">{session.master}</span>
+  </label>
+
+  <label class="master" title="Só as faixas de ambiente, por cima do master">
+    <span class="muted">Ambiente</span>
+    <input type="range" min="0" max="100" value={session.ambienceMaster} oninput={(e) => setAmbienceMaster(Number(e.currentTarget.value))} />
+    <span class="num">{session.ambienceMaster}</span>
   </label>
 
   <button class="danger" onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
