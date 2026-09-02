@@ -149,24 +149,22 @@ kbd {
   width: 0.6em;
   height: 0.6em;
   border-radius: 50%;
-  /* Grey: not armed yet (player loading or not buffered). */
   background: var(--muted);
 }
 
+/* Blinking orange: loading, not armed yet. */
 .status-dot.loading {
+  background: var(--accent);
   animation: pulse 1s infinite alternate;
 }
 
-/* Orange: armed, buffered, ready to start without delay. */
+/* Steady orange: armed, buffered, ready to start without delay. */
 .status-dot.idle {
   background: var(--accent);
 }
 
-.status-dot.fading {
-  background: var(--accent);
-  animation: pulse 1s infinite alternate;
-}
-
+/* Green: sound is on, fading in or out included. */
+.status-dot.fading,
 .status-dot.playing {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
