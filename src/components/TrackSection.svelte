@@ -72,8 +72,8 @@
     title={on
       ? `Fade out a ${meta.label.toLowerCase()}`
       : group === 'ambience'
-        ? 'Tocar a primeira faixa de ambiente'
-        : `Tocar ${meta.label.toLowerCase()}, com fade out ao resto`}
+        ? 'Fade in à primeira faixa de ambiente'
+        : `Fade in a ${meta.label.toLowerCase()}, com fade out ao resto`}
     onclick={() => toggleGroup(scene.id, group)}>{meta.label}</button
   >
   <div class="body" class:drop-end={dropAt === tracks.length}>

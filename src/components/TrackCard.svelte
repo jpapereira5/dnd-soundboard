@@ -41,7 +41,7 @@
   {/if}
 
   <button class="play" class:primary={playing} disabled={status === 'error'} onclick={() => toggleTrack(track)}>
-    {playing ? '■ Parar' : '▶ Tocar'}
+    {playing ? '■ Fade out' : '▶ Fade in'}
   </button>
   {#if track.kind === 'playlist'}
     <button class="icon" title="Faixa seguinte" onclick={() => nextInPlaylist(track)}>⏭</button>
@@ -84,7 +84,7 @@
     white-space: nowrap;
   }
   .play {
-    width: 6em;
+    width: 7.5em;
     white-space: nowrap;
   }
   .vol {
