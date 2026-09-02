@@ -22,7 +22,7 @@
     <div class="actions">
       <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
       <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
-      <button class="danger" onclick={remove}>Apagar cena</button>
+      <button class="danger delete" onclick={remove}>Apagar cena</button>
     </div>
   </div>
 
@@ -52,12 +52,14 @@
     flex: 0 1 22rem;
     min-width: 0;
   }
-  /* Buttons spread evenly between the name and the right edge. */
+  /* Fade in and Fade out sit together after the name; delete hugs the right edge. */
   .actions {
     flex: 1 1 20rem;
     display: flex;
-    justify-content: space-between;
     gap: 0.6rem;
+  }
+  .delete {
+    margin-left: auto;
   }
   .grid {
     display: grid;
