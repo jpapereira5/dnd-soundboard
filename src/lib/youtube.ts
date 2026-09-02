@@ -41,9 +41,19 @@ export interface TrackPlayerOptions {
 
 const FADE_STEP_MS = 40
 
-/** Smoothstep: 0 at 0, 1 at 1, zero slope at both ends. */
-function ease(l: number): number {
-  return l * l * (3 - 2 * l)
+/**
+ * Shape of a fade over time (t in 0..1 → progress in 0..1).
+ * - `scene`: slow start, then a steady climb that is still audible in the
+ *   last second. Used for scene and track fades: on YouTube's scale the top
+ *   fifth of the range barely registers, so a curve that flattens early
+ *   makes an 8 s fade feel like 5.
+ * - `cross`: smoothstep, symmetric with cross(t) + cross(1 - t) = 1, so the
+ *   two sides of the loop crossfade always sum to the same volume.
+ */
+export type FadeShape = 'scene' | 'cross'
+const SHAPES: Record<FadeShape, (t: number) => number> = {
+  scene: (t) => Math.pow(t, 1.5),
+  cross: (t) => t * t * (3 - 2 * t),
 }
 /** Overlap between the end of a looping video and its restart. */
 const LOOP_CROSSFADE_MS = FADE_MS
@@ -58,15 +68,11 @@ const ERROR_MESSAGES: Record<number, string> = {
 }
 
 /**
- * One YT.Player plus its own fade envelope (`level`, 0..1, linear in time).
- * Volume applied = 100 * gain * master * ease(level), where ease is an
- * S-curve (smoothstep): a soft start, most of the change in the middle,
- * and a soft landing. A plain linear ramp brought the sound in too
- * abruptly on YouTube's near-perceptual scale; a squared one kept it
- * silent for most of the fade and then jumped. ease(l) + ease(1 - l) = 1,
- * so a crossfade still sums to a constant. `gain` already carries the
- * slider curve (see `sliderToGain`). The value is passed unrounded: a
- * whole-number step from 0 to 1 is too coarse at the quiet end.
+ * One YT.Player plus its own fade envelope (`level`, 0..1).
+ * Volume applied = 100 * gain * master * level. The shape of a fade lives
+ * in how `level` moves over time (see FadeShape), not here. `gain` already
+ * carries the slider curve (see `sliderToGain`). The value is passed
+ * unrounded: a whole-number step from 0 to 1 is too coarse at the quiet end.
  */
 class Voice {
   player: YT.Player | null = null
@@ -74,7 +80,7 @@ class Voice {
   level = 0
   private fadeTimer: number | null = null
   /** Fade waiting for the player to actually start emitting sound. */
-  private armed: { target: number; ms: number; done?: () => void; onStart?: () => void } | null = null
+  private armed: { target: number; ms: number; shape: FadeShape; done?: () => void; onStart?: () => void } | null = null
   /** Set once the player has played at least once, so the next playVideo starts without buffering. */
   buffered = false
   /** Playing silently just to buffer; paused again as soon as PLAYING arrives. */
@@ -106,9 +112,9 @@ class Voice {
    * takes a while before any sound comes out; a fade started right away
    * would be half done by then and the sound would come in with a jump.
    */
-  armFade(target: number, ms: number, done?: () => void, onStart?: () => void) {
+  armFade(target: number, ms: number, shape: FadeShape, done?: () => void, onStart?: () => void) {
     this.cancelFade()
-    this.armed = { target, ms, done, onStart }
+    this.armed = { target, ms, shape, done, onStart }
     if (this.playing) this.startArmedFade()
   }
 
@@ -117,7 +123,7 @@ class Voice {
     if (!armed) return
     this.armed = null
     armed.onStart?.()
-    this.fadeTo(armed.target, armed.ms, armed.done)
+    this.fadeTo(armed.target, armed.ms, armed.shape, armed.done)
   }
 
   get playing(): boolean {
@@ -159,7 +165,7 @@ class Voice {
     return false
   }
 
-  fadeTo(target: number, ms: number, done?: () => void) {
+  fadeTo(target: number, ms: number, shape: FadeShape, done?: () => void) {
     this.cancelFade()
     if (ms <= 0) {
       this.level = target
@@ -169,9 +175,10 @@ class Voice {
     }
     const from = this.level
     const start = performance.now()
+    const curve = SHAPES[shape]
     this.fadeTimer = window.setInterval(() => {
       const t = Math.min(1, (performance.now() - start) / ms)
-      this.level = from + (target - from) * t
+      this.level = from + (target - from) * curve(t)
       this.applyVolume()
       if (t >= 1) {
         this.cancelFade()
@@ -245,7 +252,7 @@ export class TrackPlayer {
   }
 
   private createVoice(host: HTMLElement, index: number) {
-    const voice = new Voice((level) => 100 * this.gain * this.master * ease(level))
+    const voice = new Voice((level) => 100 * this.gain * this.master * level)
     this.voices.push(voice)
     // The API replaces the target element with the iframe, so give it a
     // throwaway child rather than a node Svelte owns.
@@ -397,8 +404,8 @@ export class TrackPlayer {
     incoming.player.seekTo(0, true)
     incoming.player.playVideo()
     // The outgoing ramp waits for the incoming voice too, so the two stay aligned.
-    incoming.armFade(1, ms, undefined, () =>
-      outgoing.fadeTo(0, ms, () => {
+    incoming.armFade(1, ms, 'cross', undefined, () =>
+      outgoing.fadeTo(0, ms, 'cross', () => {
         outgoing.pause()
         outgoing.seekToStart()
         this.crossfading = false
@@ -437,7 +444,7 @@ export class TrackPlayer {
     this.onStatus?.('loading')
     voice.applyVolume()
     voice.player.playVideo()
-    voice.armFade(1, fadeMs, () => this.onStatus?.('playing'))
+    voice.armFade(1, fadeMs, 'scene', () => this.onStatus?.('playing'))
   }
 
   /** One-shot from the start, no fade in. Used by SFX. */
@@ -471,9 +478,9 @@ export class TrackPlayer {
     const current = this.voice
     for (const voice of this.voices) {
       if (voice === current) continue
-      if (voice.level > 0 || voice.fading) voice.fadeTo(0, fadeMs, () => voice.pause())
+      if (voice.level > 0 || voice.fading) voice.fadeTo(0, fadeMs, 'scene', () => voice.pause())
     }
-    current.fadeTo(0, current.level > 0 ? fadeMs : 0, () => {
+    current.fadeTo(0, current.level > 0 ? fadeMs : 0, 'scene', () => {
       this.active = false
       current.pause()
       this.onStatus?.('idle')
