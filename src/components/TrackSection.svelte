@@ -9,9 +9,8 @@
 
   const meta = $derived(GROUPS.find((g) => g.id === group)!)
   const tracks = $derived(scene.tracks.filter((t) => t.group === group))
-  /** Music and battle headings are toggle buttons; ambience is a plain heading. */
-  const toggle = $derived(group !== 'ambience')
-  const on = $derived(toggle && groupPlaying(scene, group))
+  /** The heading is a toggle: off plays the group's first track, on fades the group out. */
+  const on = $derived(groupPlaying(scene, group))
 
   // Any track can be dragged by its grip to another spot in its group or
   // into another group of the scene. The drag id is shared through runtime
@@ -66,17 +65,17 @@
 <!-- Heading and tracks on one line; the whole row is a drop target, so an empty group can receive a track. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="group" ondragover={onDragOver} ondrop={onDrop} ondragleave={onDragLeave}>
-  {#if toggle}
-    <button
-      class="head"
-      class:primary={on}
-      disabled={tracks.length === 0}
-      title={on ? `Fade out a ${meta.label.toLowerCase()}` : `Tocar ${meta.label.toLowerCase()}, com fade out ao resto`}
-      onclick={() => toggleGroup(scene.id, group)}>{meta.label}</button
-    >
-  {:else}
-    <h3 class="head">{meta.label}</h3>
-  {/if}
+  <button
+    class="head"
+    class:primary={on}
+    disabled={tracks.length === 0}
+    title={on
+      ? `Fade out a ${meta.label.toLowerCase()}`
+      : group === 'ambience'
+        ? 'Tocar a primeira faixa de ambiente'
+        : `Tocar ${meta.label.toLowerCase()}, com fade out ao resto`}
+    onclick={() => toggleGroup(scene.id, group)}>{meta.label}</button
+  >
   <div class="body" class:drop-end={dropAt === tracks.length}>
     {#if tracks.length === 0}
       <!-- Empty group: the add form sits in the row. Once a track exists it moves to the bottom of the box. -->
@@ -113,10 +112,6 @@
     font-size: 1rem;
     font-weight: 600;
     text-align: center;
-  }
-  h3.head {
-    text-align: left;
-    padding-left: 0.8rem;
   }
   .body {
     position: relative;

@@ -298,8 +298,9 @@ export function groupPlaying(scene: Scene, group: Group): boolean {
 }
 
 /**
- * Heading button of a music or battle group. Off: start the group's first
- * track, with the same exclusivity as its play button. On: fade the group out.
+ * Heading button of a group. Off: start the group's first track, with the
+ * same rules as its play button (music and battle exclusive, ambience
+ * layered). On: fade every playing track of the group out.
  */
 export function toggleGroup(sceneId: string, group: Group) {
   const scene = session.scenes.find((s) => s.id === sceneId)
