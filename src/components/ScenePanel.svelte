@@ -26,8 +26,8 @@
       <input
         type="number"
         min="0"
-        step="0.5"
-        bind:value={() => scene.fadeMs / 1000, (v) => (scene.fadeMs = Math.max(0, Number(v) || 0) * 1000)}
+        step="1"
+        bind:value={() => Math.round(scene.fadeMs / 1000), (v) => (scene.fadeMs = Math.max(0, Math.round(Number(v) || 0)) * 1000)}
       />
       <span class="muted">s</span>
     </label>
