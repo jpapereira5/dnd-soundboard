@@ -118,22 +118,35 @@ class Voice {
     return this.ready && this.player?.getPlayerState() === YT.PlayerState.PLAYING
   }
 
-  /** Play at volume 0 so the video buffers; handlePlaying pauses it again. */
+  /**
+   * Play muted so the video buffers; handlePlaying pauses it again. Muted
+   * playback is allowed without a user gesture, so this runs as soon as the
+   * player is ready. Safe to call again while a first attempt is pending:
+   * if the browser refused it, the retry after a click goes through.
+   */
   prime() {
-    if (!this.ready || !this.player || this.buffered || this.priming) return
+    if (!this.ready || !this.player || this.buffered) return
     this.priming = true
     this.level = 0
     this.applyVolume()
+    this.player.mute()
     this.player.playVideo()
+  }
+
+  /** Leaves priming mode; the next PLAYING is real playback. */
+  unprime() {
+    if (!this.priming) return
+    this.priming = false
+    this.player?.unMute()
   }
 
   /** Called on the player's PLAYING event. Returns true when it was only a priming run. */
   handlePlaying(): boolean {
     this.buffered = true
     if (this.priming) {
-      this.priming = false
       this.pause()
       this.seekToStart()
+      this.unprime()
       return true
     }
     this.startArmedFade()
@@ -164,7 +177,7 @@ class Voice {
   /** Silence and pause right away. */
   cut() {
     this.cancelFade()
-    this.priming = false
+    this.unprime()
     this.level = 0
     this.applyVolume()
     this.pause()
@@ -271,7 +284,10 @@ export class TrackPlayer {
     const voice = this.voices[index]
     voice.ready = true
     voice.applyVolume()
-    if (index !== 0) return
+    if (index !== 0) {
+      voice.prime()
+      return
+    }
 
     this.ready = true
     if (this.kind === 'playlist' && voice.player) {
@@ -285,6 +301,7 @@ export class TrackPlayer {
       this.play(fade)
     } else {
       this.onStatus?.('idle')
+      voice.prime()
     }
   }
 
@@ -364,6 +381,7 @@ export class TrackPlayer {
     const incoming = this.voices[1 - this.current]
     if (!incoming.ready || !incoming.player || !outgoing.player) return
     this.crossfading = true
+    incoming.unprime()
     incoming.level = 0
     incoming.applyVolume()
     incoming.player.seekTo(0, true)
@@ -399,6 +417,7 @@ export class TrackPlayer {
     this.active = true
     for (const other of this.voices) if (other !== voice) other.cut()
     this.startLoopWatch()
+    voice.unprime()
     voice.seekToStart()
     if (!voice.fading && voice.level > 0) {
       voice.player.playVideo()
@@ -420,6 +439,7 @@ export class TrackPlayer {
       return
     }
     voice.cancelFade()
+    voice.unprime()
     this.active = true
     voice.level = 1
     voice.applyVolume()
