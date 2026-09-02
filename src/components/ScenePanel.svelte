@@ -20,13 +20,14 @@
   <div class="row head">
     <div class="name-group">
       <input class="name" type="text" bind:value={scene.name} />
-      <button class="icon" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
-      <button class="icon" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
+      <button class="icon arrow" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
+      <button class="icon arrow" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
     </div>
-    <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
-    <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
-    <span class="grow"></span>
-    <button class="danger" onclick={remove}>Apagar cena</button>
+    <div class="actions">
+      <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
+      <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
+      <button class="danger" onclick={remove}>Apagar cena</button>
+    </div>
   </div>
 
   {#if scene.tracks.length === 0}
@@ -63,8 +64,19 @@
     flex: 1;
     min-width: 0;
   }
-  .grow {
-    flex: 1;
+  /* Same box for both arrows, whatever the glyph width. */
+  .arrow {
+    width: 2.4rem;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+  }
+  /* Buttons spread evenly between the name and the right edge. */
+  .actions {
+    flex: 1 1 20rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
   }
   .grid {
     display: grid;
