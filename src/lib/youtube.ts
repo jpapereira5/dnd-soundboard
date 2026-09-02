@@ -56,6 +56,10 @@ const ERROR_MESSAGES: Record<number, string> = {
  * One YT.Player plus its own fade envelope (`level`, 0..1).
  * Volume applied = 100 * gain * master * level^2; the square makes fades
  * sound linear to the ear, since YouTube's volume scale is amplitude-linear.
+ * `gain` already carries the slider curve (see `sliderToGain`), so a track
+ * near the bottom of its slider ends up well below 1 here. The value is
+ * passed unrounded: a whole-number step from 0 to 1 is too coarse at the
+ * quiet end.
  */
 class Voice {
   player: YT.Player | null = null
@@ -71,7 +75,7 @@ class Voice {
 
   applyVolume() {
     if (!this.ready || !this.player) return
-    const v = Math.round(this.volumeFor(this.level))
+    const v = this.volumeFor(this.level)
     this.player.setVolume(Math.max(0, Math.min(100, v)))
   }
 

@@ -57,6 +57,16 @@ function clamp(v: number): number {
   return Math.max(0, Math.min(100, Number(v) || 0))
 }
 
+/**
+ * Maps a 0..100 slider to a 0..1 gain. Squared so the low end of the
+ * slider gets much finer control: 50 gives a quarter of the loudness of
+ * 100, and the first few steps above 0 are barely audible.
+ */
+export function sliderToGain(v: number): number {
+  const x = clamp(v) / 100
+  return x * x
+}
+
 // ---------------------------------------------------------------------------
 // Reactive state
 // ---------------------------------------------------------------------------
@@ -110,7 +120,7 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
     kind: opts.kind,
     loop: opts.loop,
     shuffle: opts.shuffle,
-    gain: opts.volume / 100,
+    gain: sliderToGain(opts.volume),
     master: untrack(() => session.master) / 100,
     onStatus: (status, detail) => {
       runtime.status[id] = status
@@ -226,12 +236,12 @@ export function nextInPlaylist(track: Track) {
 export function applyTrackSettings(track: Track) {
   const player = players.get(track.id)
   if (!player) return
-  player.setGain(track.volume / 100)
+  player.setGain(sliderToGain(track.volume))
   player.setShuffle(track.shuffle)
 }
 
 export function applySfxVolume(sfx: Sfx) {
-  players.get(sfx.id)?.setGain(sfx.volume / 100)
+  players.get(sfx.id)?.setGain(sliderToGain(sfx.volume))
 }
 
 export function setMaster(value: number) {
