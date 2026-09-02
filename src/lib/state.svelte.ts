@@ -292,6 +292,27 @@ export function toggleTrack(track: Track) {
   player.play(FADE_MS)
 }
 
+/** Any track of this group is sounding (playing or fading). */
+export function groupPlaying(scene: Scene, group: Group): boolean {
+  return scene.tracks.some((t) => t.group === group && isPlaying(t.id))
+}
+
+/**
+ * Heading button of a music or battle group. Off: start the group's first
+ * track, with the same exclusivity as its play button. On: fade the group out.
+ */
+export function toggleGroup(sceneId: string, group: Group) {
+  const scene = session.scenes.find((s) => s.id === sceneId)
+  if (!scene) return
+  const tracks = scene.tracks.filter((t) => t.group === group)
+  const active = tracks.filter((t) => players.get(t.id)?.active)
+  if (active.length) {
+    for (const t of active) players.get(t.id)?.stop(FADE_MS)
+    return
+  }
+  if (tracks[0]) toggleTrack(tracks[0])
+}
+
 export function nextInPlaylist(track: Track) {
   players.get(track.id)?.nextInPlaylist()
 }

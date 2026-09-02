@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { runtime, addTrack, moveTrackTo } from '../lib/state.svelte'
+  import { runtime, addTrack, moveTrackTo, toggleGroup, groupPlaying } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -12,6 +12,7 @@
   /** Music and battle sit on one line and only offer the add form while empty. */
   const single = $derived(group !== 'ambience')
   const canAdd = $derived(!single || tracks.length === 0)
+  const on = $derived(single && groupPlaying(scene, group))
 
   // Any track can be dragged by its grip to another spot in its group or
   // into another group of the scene. The drag id is shared through runtime
@@ -64,7 +65,17 @@
 </script>
 
 <div class="group" class:single>
-  <h3>{meta.label}</h3>
+  {#if single}
+    <button
+      class="head"
+      class:primary={on}
+      disabled={tracks.length === 0}
+      title={on ? `Fade out a ${meta.label.toLowerCase()}` : `Tocar ${meta.label.toLowerCase()}, com fade out ao resto`}
+      onclick={() => toggleGroup(scene.id, group)}>{meta.label}</button
+    >
+  {:else}
+    <h3>{meta.label}</h3>
+  {/if}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="body" class:drop-end={dropAt === tracks.length} ondragover={onDragOver} ondrop={onDrop} ondragleave={onDragLeave}>
     {#each tracks as track, i (track.id)}
@@ -150,9 +161,10 @@
     gap: 0.8rem;
     flex-wrap: wrap;
   }
-  .single h3 {
-    margin: 0;
-    flex: 0 0 5rem;
+  .single .head {
+    flex: 0 0 6rem;
+    font-weight: 600;
+    text-align: center;
   }
   .single .body {
     flex: 1 1 24rem;
