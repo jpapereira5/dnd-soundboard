@@ -27,6 +27,8 @@ export function loadYouTubeApi(): Promise<typeof YT> {
 }
 
 export interface TrackPlayerOptions {
+  /** Track or effect id, so the priming queue can ask what to load first. */
+  id: string
   ytId: string
   kind: Kind
   loop: boolean
@@ -85,6 +87,8 @@ class Voice {
   buffered = false
   /** Playing silently just to buffer; paused again as soon as PLAYING arrives. */
   priming = false
+  /** Told when a priming run ends, however it ends. Set by the priming queue. */
+  onPrimed: (() => void) | null = null
 
   constructor(private readonly volumeFor: (level: number) => number) {}
 
@@ -150,6 +154,13 @@ class Voice {
     if (!this.priming) return
     this.priming = false
     this.player?.unMute()
+    this.primed()
+  }
+
+  private primed() {
+    const cb = this.onPrimed
+    this.onPrimed = null
+    cb?.()
   }
 
   /** Called on the player's PLAYING event. Returns true when it was only a priming run. */
@@ -212,6 +223,51 @@ class Voice {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Priming queue: one voice buffers at a time. Dozens of players all starting
+// a muted play at once is what triggers YouTube's transient errors.
+// ---------------------------------------------------------------------------
+
+const PRIME_GAP_MS = 400
+/** Give up waiting for PLAYING (blocked autoplay, slow video) and move on. */
+const PRIME_TIMEOUT_MS = 4000
+
+const primeQueue: { player: TrackPlayer; voice: Voice }[] = []
+let primeBusy = false
+let primePriority: (player: TrackPlayer) => number = () => 0
+
+/** Lower numbers prime first. The app uses it to put the visible scene ahead. */
+export function setPrimePriority(fn: (player: TrackPlayer) => number) {
+  primePriority = fn
+}
+
+function enqueuePrime(player: TrackPlayer, voice: Voice) {
+  if (voice.buffered || primeQueue.some((e) => e.voice === voice)) return
+  primeQueue.push({ player, voice })
+  pumpPrime()
+}
+
+function pumpPrime() {
+  if (primeBusy) return
+  primeQueue.sort((a, b) => primePriority(a.player) - primePriority(b.player))
+  while (primeQueue.length) {
+    const { player, voice } = primeQueue.shift()!
+    if (player.destroyed || voice.buffered || player.active || !voice.ready) continue
+    primeBusy = true
+    let finished = false
+    const done = () => {
+      if (finished) return
+      finished = true
+      primeBusy = false
+      window.setTimeout(pumpPrime, PRIME_GAP_MS)
+    }
+    voice.onPrimed = done
+    voice.prime()
+    window.setTimeout(done, PRIME_TIMEOUT_MS)
+    return
+  }
+}
+
 /**
  * Wraps one track. Looping videos get two voices: while one plays, the
  * other waits at the start; near the end they crossfade so the loop has
@@ -221,7 +277,7 @@ export class TrackPlayer {
   private voices: Voice[] = []
   private current = 0
   private ready = false
-  private destroyed = false
+  destroyed = false
   private pendingPlay: number | null = null
   private loopTimer: number | null = null
   private crossfading = false
@@ -235,6 +291,7 @@ export class TrackPlayer {
   shuffle: boolean
   readonly kind: Kind
   readonly ytId: string
+  readonly id: string
   private host: HTMLElement
   /** Automatic reloads after a transient player error (code 5). */
   private reloads = 0
@@ -243,6 +300,7 @@ export class TrackPlayer {
   private onTitle?: TrackPlayerOptions['onTitle']
 
   constructor(host: HTMLElement, opts: TrackPlayerOptions) {
+    this.id = opts.id
     this.ytId = opts.ytId
     this.kind = opts.kind
     this.loop = opts.loop
@@ -331,7 +389,7 @@ export class TrackPlayer {
     voice.ready = true
     voice.applyVolume()
     if (index !== 0) {
-      voice.prime()
+      enqueuePrime(this, voice)
       return
     }
 
@@ -347,7 +405,7 @@ export class TrackPlayer {
       this.play(fade)
     } else {
       // Stays 'loading' until the priming run has buffered the video.
-      voice.prime()
+      enqueuePrime(this, voice)
     }
   }
 
@@ -366,7 +424,7 @@ export class TrackPlayer {
         this.onStatus?.(this.stopping ? 'stopping' : voice.fading ? 'fading' : 'playing')
         // Buffer the other loop voice now, while this one plays, so the
         // first crossfade starts as promptly as the later ones.
-        for (const other of this.voices) if (other !== voice) other.prime()
+        for (const other of this.voices) if (other !== voice) enqueuePrime(this, other)
       }
     } else if (state === S.ENDED) {
       if (index !== this.current) {
@@ -534,10 +592,10 @@ export class TrackPlayer {
     })
   }
 
-  /** Buffer every voice that has not played yet. Retried after the first user gesture. */
+  /** Queue every voice that has not played yet for buffering. Retried after the first user gesture. */
   prime() {
     if (this.destroyed || this.active) return
-    for (const voice of this.voices) voice.prime()
+    for (const voice of this.voices) enqueuePrime(this, voice)
   }
 
   setGain(gain: number) {

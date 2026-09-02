@@ -1,7 +1,7 @@
 import { untrack } from 'svelte'
 import type { Group, Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
 import { FADE_MS, GROUPS, uid } from './types'
-import { TrackPlayer } from './youtube'
+import { TrackPlayer, setPrimePriority } from './youtube'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
 
@@ -136,6 +136,7 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
   const pendingFade = pendingPlays.get(id)
   unregisterPlayer(id)
   const player = new TrackPlayer(host, {
+    id,
     ytId: opts.ytId,
     kind: opts.kind,
     loop: opts.loop,
@@ -158,6 +159,13 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
   players.set(id, player)
   if (pendingFade !== undefined) player.play(pendingFade)
 }
+
+function sceneOfId(id: string): Scene | undefined {
+  return session.scenes.find((s) => s.tracks.some((t) => t.id === id) || s.sfx.some((x) => x.id === id))
+}
+
+// The scene on screen buffers first; the rest follow one at a time.
+setPrimePriority((player) => (sceneOfId(player.id)?.id === runtime.viewSceneId ? 0 : 1))
 
 export function unregisterPlayer(id: string) {
   players.get(id)?.destroy()
