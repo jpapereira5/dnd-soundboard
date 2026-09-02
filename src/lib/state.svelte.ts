@@ -185,8 +185,8 @@ export function viewScene(sceneId: string) {
 
 /**
  * Fade the scene in. Whatever else is playing fades out, so switching scenes
- * is a crossfade. Tracks that were not already playing restart: a video from
- * its beginning, a playlist from the beginning of the song it was last on.
+ * is a crossfade. Tracks that were not already playing start over (see
+ * TrackPlayer.play); ones already playing are left alone.
  */
 export function activateScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
@@ -203,7 +203,7 @@ export function activateScene(sceneId: string) {
   for (const track of scene.tracks) {
     const player = players.get(track.id)
     if (!player) pendingPlays.set(track.id, FADE_MS)
-    else if (!player.active) player.play(FADE_MS, true)
+    else if (!player.active) player.play(FADE_MS)
   }
 }
 
@@ -225,6 +225,7 @@ export function stopAll(immediate = false) {
   for (const [id, player] of players) player.stop(immediate ? 0 : fadeFor(id))
 }
 
+/** Play button on a track card. Starting always restarts, same as a scene start. */
 export function toggleTrack(track: Track) {
   const player = players.get(track.id)
   if (!player) return
