@@ -27,10 +27,17 @@
   </div>
 
   <div class="sections">
-    <TrackSection {scene} group="ambience" />
-    <TrackSection {scene} group="music" />
-    <TrackSection {scene} group="battle" />
-    <SfxSection {scene} />
+    <div class="box">
+      <TrackSection {scene} group="ambience" />
+    </div>
+    <!-- Music and battle share a box: one plays or the other. -->
+    <div class="box stack">
+      <TrackSection {scene} group="music" />
+      <TrackSection {scene} group="battle" />
+    </div>
+    <div class="box">
+      <SfxSection {scene} />
+    </div>
   </div>
 </section>
 
@@ -59,5 +66,15 @@
   .sections {
     display: grid;
     gap: 0.8rem;
+  }
+  .box {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--bg-2) 60%, transparent);
+  }
+  .stack {
+    display: grid;
+    gap: 0.6rem;
   }
 </style>

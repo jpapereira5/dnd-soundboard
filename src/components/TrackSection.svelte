@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { groupIsOn, addTrack } from '../lib/state.svelte'
+  import { addTrack } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -12,15 +12,10 @@
   /** Music and battle hold one track each, on one line; ambience can layer several. */
   const single = $derived(group !== 'ambience')
   const canAdd = $derived(!single || tracks.length === 0)
-  /** This group is sounding in the active scene. */
-  const on = $derived(groupIsOn(scene.id, group))
 </script>
 
-<section class="group" class:on class:single>
-  <div class="row head">
-    <h3>{meta.label}</h3>
-  </div>
-
+<div class="group" class:single>
+  <h3>{meta.label}</h3>
   <div class="body">
     {#each tracks as track (track.id)}
       <TrackCard {track} sceneId={scene.id} />
@@ -29,29 +24,12 @@
       <AddMediaForm label="Adicionar" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title)} />
     {/if}
   </div>
-</section>
+</div>
 
 <style>
-  .group {
-    padding: 0.8rem 1rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: color-mix(in srgb, var(--bg-2) 60%, transparent);
-  }
-  .group.on {
-    border-color: var(--accent-2);
-  }
-  .head {
-    margin-bottom: 0.6rem;
-  }
   h3 {
-    margin: 0;
+    margin: 0 0 0.6rem;
     font-size: 1rem;
-    min-width: 5rem;
-  }
-  .single .head {
-    flex: 0 0 auto;
-    flex-wrap: nowrap;
   }
   .body {
     display: grid;
@@ -61,15 +39,16 @@
     margin-top: 0.6rem;
   }
 
-  /* Single-track groups: heading, mode button and the track on one line. */
+  /* Single-track groups: heading and the track on one line. */
   .single {
     display: flex;
     align-items: center;
     gap: 0.8rem;
     flex-wrap: wrap;
   }
-  .single .head {
+  .single h3 {
     margin: 0;
+    flex: 0 0 5rem;
   }
   .single .body {
     flex: 1 1 24rem;

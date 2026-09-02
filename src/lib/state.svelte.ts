@@ -195,10 +195,6 @@ function activeGroups(): Group[] {
   return ['ambience', runtime.battle ? 'battle' : 'music']
 }
 
-export function groupIsOn(sceneId: string, group: Group): boolean {
-  return runtime.activeSceneId === sceneId && activeGroups().includes(group)
-}
-
 // ---------------------------------------------------------------------------
 // Playback control
 // ---------------------------------------------------------------------------

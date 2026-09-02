@@ -9,9 +9,7 @@
 </script>
 
 <section class="sfx">
-  <header class="row head">
-    <h3>Efeitos</h3>
-  </header>
+  <h3>Efeitos</h3>
 
   <div class="grid">
     {#each scene.sfx as sfx, i (sfx.id)}
@@ -44,19 +42,9 @@
 </section>
 
 <style>
-  .sfx {
-    padding: 0.8rem 1rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: color-mix(in srgb, var(--bg-2) 60%, transparent);
-  }
-  .head {
-    margin-bottom: 0.6rem;
-  }
   h3 {
-    margin: 0;
+    margin: 0 0 0.6rem;
     font-size: 1rem;
-    min-width: 6rem;
   }
   .grid {
     display: grid;
