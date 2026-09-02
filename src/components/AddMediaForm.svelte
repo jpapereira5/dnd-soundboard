@@ -4,8 +4,11 @@
 
   type Add = (ytId: string, kind: Kind, title: string) => void
 
-  /** One submit button per action, e.g. "+ Música" and "+ Batalha" on the same form. */
-  let { actions, allowPlaylist = false }: { actions: { label: string; onadd: Add }[]; allowPlaylist?: boolean } = $props()
+  /**
+   * One submit button per action, e.g. "+ Música" and "+ Efeito" on the same
+   * form. An action with `videoOnly` rejects playlist links.
+   */
+  let { actions, allowPlaylist = false }: { actions: { label: string; onadd: Add; videoOnly?: boolean }[]; allowPlaylist?: boolean } = $props()
 
   let url = $state('')
   let title = $state('')
@@ -21,16 +24,17 @@
 
   function submit(e: Event) {
     e.preventDefault()
-    const onadd = actions[chosen]?.onadd ?? actions[0].onadd
+    const action = actions[chosen] ?? actions[0]
     const p = parseYouTube(url)
     if (!p) {
       error = 'Link do YouTube inválido'
       return
     }
-    if (allowPlaylist && p.playlistId && (!p.videoId || prefer === 'playlist')) {
-      onadd(p.playlistId, 'playlist', title.trim())
+    const playlists = allowPlaylist && !action.videoOnly
+    if (playlists && p.playlistId && (!p.videoId || prefer === 'playlist')) {
+      action.onadd(p.playlistId, 'playlist', title.trim())
     } else if (p.videoId) {
-      onadd(p.videoId, 'video', title.trim())
+      action.onadd(p.videoId, 'video', title.trim())
     } else {
       error = 'Efeitos têm de ser um vídeo, não uma playlist'
       return

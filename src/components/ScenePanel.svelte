@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene, addTrack } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx } from '../lib/state.svelte'
   import type { Group } from '../lib/types'
   import TrackSection from './TrackSection.svelte'
   import SfxSection from './SfxSection.svelte'
@@ -10,15 +10,17 @@
 
   const active = $derived(runtime.activeSceneId === scene.id)
 
+  // One form for the whole scene: paste a link, then pick where it goes.
   const adder = (label: string, group: Group) => ({
     label,
     onadd: (ytId: string, kind: 'video' | 'playlist', title: string) => addTrack(scene.id, group, ytId, kind, title),
   })
-  const has = (group: Group) => scene.tracks.some((t) => t.group === group)
-  // Bottom-of-box forms only offer groups that already have a track; an
-  // empty group shows its own form in its row (see TrackSection).
-  const modeActions = $derived([...(has('music') ? [adder('+ Música', 'music')] : []), ...(has('battle') ? [adder('+ Batalha', 'battle')] : [])])
-  const ambienceActions = $derived(has('ambience') ? [adder('+ Ambiente', 'ambience')] : [])
+  const actions = [
+    adder('+ Música', 'music'),
+    adder('+ Batalha', 'battle'),
+    adder('+ Ambiente', 'ambience'),
+    { label: '+ Efeito', videoOnly: true, onadd: (ytId: string, _kind: 'video' | 'playlist', title: string) => addSfx(scene.id, ytId, title) },
+  ]
 
   function remove() {
     const n = scene.tracks.length + scene.sfx.length
@@ -44,18 +46,16 @@
       <TrackSection {scene} group="music" />
       <hr />
       <TrackSection {scene} group="battle" />
-      {#if modeActions.length}
-        <AddMediaForm allowPlaylist actions={modeActions} />
-      {/if}
     </div>
-    <div class="box stack">
+    <div class="box">
       <TrackSection {scene} group="ambience" />
-      {#if ambienceActions.length}
-        <AddMediaForm allowPlaylist actions={ambienceActions} />
-      {/if}
     </div>
     <div class="box">
       <SfxSection {scene} />
+    </div>
+    <div class="box add-box">
+      <h3>Adicionar</h3>
+      <AddMediaForm allowPlaylist {actions} />
     </div>
   </div>
 </section>
@@ -96,8 +96,21 @@
     display: grid;
     gap: 0.6rem;
   }
-  .stack :global(form.add) {
-    margin-top: 0.2rem;
+  .add-box {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .add-box h3 {
+    margin: 0;
+    font-size: 1rem;
+    flex: 0 0 6rem;
+    padding-left: 0.8rem;
+  }
+  .add-box :global(form.add) {
+    flex: 1 1 24rem;
+    margin-top: 0;
   }
   hr {
     margin: 0;

@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, playSfx, addSfx, removeSfx, applySfxVolume } from '../lib/state.svelte'
+  import { runtime, playSfx, removeSfx, applySfxVolume } from '../lib/state.svelte'
   import { SFX_KEYS } from '../lib/hotkeys'
-  import AddMediaForm from './AddMediaForm.svelte'
 
   let { scene }: { scene: Scene } = $props()
 </script>
@@ -11,9 +10,7 @@
   <div class="line">
     <h3>Efeitos</h3>
     <div class="content">
-      {#if scene.sfx.length === 0}
-        <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
-      {:else}
+      {#if scene.sfx.length > 0}
         <div class="grid">
           {#each scene.sfx as sfx, i (sfx.id)}
             {@const status = runtime.status[sfx.id] ?? 'idle'}
@@ -42,9 +39,6 @@
       {/if}
     </div>
   </div>
-  {#if scene.sfx.length > 0}
-    <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
-  {/if}
 </section>
 
 <style>
@@ -64,12 +58,7 @@
   .content {
     flex: 1 1 24rem;
     min-width: 0;
-  }
-  .content :global(form.add) {
-    margin-top: 0;
-  }
-  .sfx > :global(form.add) {
-    margin-top: 0.6rem;
+    min-height: 1.5rem;
   }
   .grid {
     display: grid;
@@ -119,8 +108,5 @@
     width: 2.2em;
     text-align: right;
     font-variant-numeric: tabular-nums;
-  }
-  .sfx :global(form.add) {
-    margin-top: 0.6rem;
   }
 </style>
