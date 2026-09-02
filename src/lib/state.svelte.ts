@@ -300,9 +300,10 @@ export function groupPlaying(scene: Scene, group: Group): boolean {
 }
 
 /**
- * Heading button of a group. Off: start the group's first track, with the
- * same rules as its play button (music and battle exclusive, ambience
- * layered). On: fade every playing track of the group out.
+ * Heading button of a group. On: fade every playing track of the group out.
+ * Off: music and battle start their first track, with the same exclusivity
+ * as its play button; ambience starts every one of its tracks, layered.
+ * (A scene start still plays only the first ambience track.)
  */
 export function toggleGroup(sceneId: string, group: Group) {
   const scene = session.scenes.find((s) => s.id === sceneId)
@@ -316,7 +317,8 @@ export function toggleGroup(sceneId: string, group: Group) {
     for (const t of active) players.get(t.id)?.stop(FADE_MS)
     return
   }
-  if (tracks[0]) toggleTrack(tracks[0])
+  if (group === 'ambience') for (const t of tracks) toggleTrack(t)
+  else if (tracks[0]) toggleTrack(tracks[0])
 }
 
 export function nextInPlaylist(track: Track) {

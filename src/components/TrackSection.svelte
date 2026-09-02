@@ -72,7 +72,7 @@
     title={on
       ? `Fade out a ${meta.label.toLowerCase()}`
       : group === 'ambience'
-        ? 'Fade in à primeira faixa de ambiente'
+        ? 'Fade in a todas as faixas de ambiente'
         : `Fade in a ${meta.label.toLowerCase()}, com fade out ao resto`}
     onclick={() => toggleGroup(scene.id, group)}>{meta.label}</button
   >
