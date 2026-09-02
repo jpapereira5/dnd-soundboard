@@ -284,10 +284,12 @@ export function removeScene(sceneId: string) {
   }
 }
 
-export function moveScene(sceneId: string, delta: number) {
+/** Moves a scene so it ends up at `target` in the list (clamped). Used by tab drag and drop. */
+export function moveSceneTo(sceneId: string, target: number) {
   const index = session.scenes.findIndex((s) => s.id === sceneId)
-  const target = index + delta
-  if (index < 0 || target < 0 || target >= session.scenes.length) return
+  if (index < 0) return
+  target = Math.max(0, Math.min(session.scenes.length - 1, target))
+  if (target === index) return
   const [scene] = session.scenes.splice(index, 1)
   session.scenes.splice(target, 0, scene)
 }

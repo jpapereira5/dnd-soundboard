@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene, moveScene, addTrack } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, addTrack } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -18,11 +18,7 @@
 
 <section class="scene">
   <div class="row head">
-    <div class="name-group">
-      <input class="name" type="text" bind:value={scene.name} />
-      <button class="icon arrow" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
-      <button class="icon arrow" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
-    </div>
+    <input class="name" type="text" bind:value={scene.name} />
     <div class="actions">
       <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
       <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
@@ -50,26 +46,11 @@
   .head {
     margin-bottom: 1rem;
   }
-  /* Name and its move arrows never split across lines. */
-  .name-group {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex: 0 1 22rem;
-    min-width: 0;
-  }
   .name {
     font-size: 1.2rem;
     font-weight: 600;
-    flex: 1;
+    flex: 0 1 22rem;
     min-width: 0;
-  }
-  /* Same box for both arrows, whatever the glyph width. */
-  .arrow {
-    width: 2.4rem;
-    padding-left: 0;
-    padding-right: 0;
-    text-align: center;
   }
   /* Buttons spread evenly between the name and the right edge. */
   .actions {
