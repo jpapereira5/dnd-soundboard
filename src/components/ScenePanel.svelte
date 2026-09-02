@@ -10,16 +10,28 @@
 
   const active = $derived(runtime.activeSceneId === scene.id)
 
-  // One form for the whole scene: paste a link, then pick where it goes.
+  // One form for the whole scene, opened by the Adicionar button: paste a
+  // link, then pick where it goes. It closes again after adding.
+  let adding = $state(false)
   const adder = (label: string, group: Group) => ({
     label,
-    onadd: (ytId: string, kind: 'video' | 'playlist', title: string) => addTrack(scene.id, group, ytId, kind, title),
+    onadd: (ytId: string, kind: 'video' | 'playlist', title: string) => {
+      addTrack(scene.id, group, ytId, kind, title)
+      adding = false
+    },
   })
   const actions = [
     adder('+ Música', 'music'),
     adder('+ Batalha', 'battle'),
     adder('+ Ambiente', 'ambience'),
-    { label: '+ Efeito', videoOnly: true, onadd: (ytId: string, _kind: 'video' | 'playlist', title: string) => addSfx(scene.id, ytId, title) },
+    {
+      label: '+ Efeito',
+      videoOnly: true,
+      onadd: (ytId: string, _kind: 'video' | 'playlist', title: string) => {
+        addSfx(scene.id, ytId, title)
+        adding = false
+      },
+    },
   ]
 
   function remove() {
@@ -53,9 +65,14 @@
     <div class="box">
       <SfxSection {scene} />
     </div>
-    <div class="box add-box">
-      <h3>Adicionar</h3>
-      <AddMediaForm allowPlaylist {actions} />
+    {#if adding}
+      <div class="box add-box">
+        <h3>Adicionar</h3>
+        <AddMediaForm allowPlaylist {actions} />
+      </div>
+    {/if}
+    <div>
+      <button class:primary={adding} onclick={() => (adding = !adding)}>{adding ? 'Fechar' : '+ Adicionar'}</button>
     </div>
   </div>
 </section>
