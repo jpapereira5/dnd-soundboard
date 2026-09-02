@@ -16,8 +16,4 @@
   })
 </script>
 
-<div class="player-host" bind:this={host}>
-  {#if !armed}
-    <div class="placeholder">Abre a cena para carregar</div>
-  {/if}
-</div>
+<div class="player-host" bind:this={host}></div>

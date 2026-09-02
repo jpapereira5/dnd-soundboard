@@ -42,7 +42,7 @@
       {#if track.kind === 'playlist'}
         <button disabled={!armed} onclick={() => nextInPlaylist(track)}>⏭ Seguinte</button>
       {/if}
-      <span class="muted kind">{track.kind === 'playlist' ? 'playlist' : 'vídeo'}</span>
+      <span class="muted kind">{track.kind === 'playlist' ? 'playlist' : 'vídeo'}{#if !armed} · por carregar{/if}</span>
     </div>
 
     <label class="vol">
