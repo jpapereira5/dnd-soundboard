@@ -11,11 +11,7 @@
 <section class="sfx">
   <header class="row head">
     <h3>Efeitos</h3>
-    <span class="muted hint">sons curtos, por botão ou tecla, sem loop</span>
   </header>
-  {#if scene.sfx.length === 0}
-    <p class="muted empty">Trovão, porta, moedas... Disparam de imediato, mesmo com a cena parada.</p>
-  {/if}
 
   <div class="grid">
     {#each scene.sfx as sfx, i (sfx.id)}
@@ -61,13 +57,6 @@
     margin: 0;
     font-size: 1rem;
     min-width: 6rem;
-  }
-  .hint {
-    font-size: 0.85rem;
-  }
-  .empty {
-    margin: 0;
-    font-size: 0.9rem;
   }
   .grid {
     display: grid;

@@ -14,21 +14,14 @@
   const canAdd = $derived(!single || tracks.length === 0)
   /** This group is sounding in the active scene. */
   const on = $derived(groupIsOn(scene.id, group))
-  const hint = $derived(
-    on ? 'a tocar' : group === 'ambience' ? 'toca sempre com a cena' : group === 'battle' ? 'tocar substitui a música' : 'tocar substitui a batalha',
-  )
 </script>
 
 <section class="group" class:on class:single>
   <div class="row head">
     <h3>{meta.label}</h3>
-    <span class="muted hint">{hint}</span>
   </div>
 
   <div class="body">
-    {#if tracks.length === 0}
-      <p class="muted empty">{meta.hint}</p>
-    {/if}
     {#each tracks as track (track.id)}
       <TrackCard {track} sceneId={scene.id} />
     {/each}
@@ -60,13 +53,6 @@
     flex: 0 0 auto;
     flex-wrap: nowrap;
   }
-  .hint {
-    font-size: 0.85rem;
-  }
-  .empty {
-    margin: 0;
-    font-size: 0.9rem;
-  }
   .body {
     display: grid;
     gap: 0.5rem;
@@ -88,9 +74,6 @@
   .single .body {
     flex: 1 1 24rem;
     min-width: 0;
-  }
-  .single .empty {
-    display: none;
   }
   .single :global(form.add) {
     margin-top: 0;
