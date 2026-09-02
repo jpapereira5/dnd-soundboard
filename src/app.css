@@ -158,15 +158,16 @@ kbd {
   animation: pulse 1s infinite alternate;
 }
 
-/* Steady orange: armed, buffered, ready to start without delay. */
-.status-dot.idle {
+/* Steady orange: armed, buffered, ready to start without delay. Also while
+   fading out: the track is already on its way back to armed. */
+.status-dot.idle,
+.status-dot.stopping {
   background: var(--accent);
 }
 
-/* Green: sound is coming out, fading in or out included. */
+/* Green: playing or fading in. */
 .status-dot.fading,
-.status-dot.playing,
-.status-dot.stopping {
+.status-dot.playing {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
 }

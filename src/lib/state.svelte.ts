@@ -299,11 +299,6 @@ export function groupPlaying(scene: Scene, group: Group): boolean {
   return scene.tracks.some((t) => t.group === group && isPlaying(t.id))
 }
 
-/** The group is on its way out: a track fading out and none playing. */
-export function groupStopping(scene: Scene, group: Group): boolean {
-  return !groupPlaying(scene, group) && scene.tracks.some((t) => t.group === group && runtime.status[t.id] === 'stopping')
-}
-
 /**
  * Heading button of a group. Off: start the group's first track, with the
  * same rules as its play button (music and battle exclusive, ambience
