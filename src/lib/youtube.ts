@@ -54,12 +54,13 @@ const ERROR_MESSAGES: Record<number, string> = {
 
 /**
  * One YT.Player plus its own fade envelope (`level`, 0..1).
- * Volume applied = 100 * gain * master * level^2; the square makes fades
- * sound linear to the ear, since YouTube's volume scale is amplitude-linear.
- * `gain` already carries the slider curve (see `sliderToGain`), so a track
- * near the bottom of its slider ends up well below 1 here. The value is
- * passed unrounded: a whole-number step from 0 to 1 is too coarse at the
- * quiet end.
+ * Volume applied = 100 * gain * master * level. The envelope is linear:
+ * YouTube's volume scale is already close to perceptual, so squaring the
+ * level (as before) kept the sound near silence for most of the fade and
+ * then jumped at the end. `gain` already carries the slider curve (see
+ * `sliderToGain`), so a track near the bottom of its slider ends up well
+ * below 1 here. The value is passed unrounded: a whole-number step from
+ * 0 to 1 is too coarse at the quiet end.
  */
 class Voice {
   player: YT.Player | null = null
@@ -171,7 +172,7 @@ export class TrackPlayer {
   }
 
   private createVoice(host: HTMLElement, index: number) {
-    const voice = new Voice((level) => 100 * this.gain * this.master * level * level)
+    const voice = new Voice((level) => 100 * this.gain * this.master * level)
     this.voices.push(voice)
     // The API replaces the target element with the iframe, so give it a
     // throwaway child rather than a node Svelte owns.
