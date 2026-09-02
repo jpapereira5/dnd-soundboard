@@ -25,9 +25,10 @@
     <span class="num">{session.master}</span>
   </label>
 
+  <button class="danger" onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
+
   <span class="grow"></span>
 
-  <button class="danger" onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
   <button onclick={exportSession}>Exportar</button>
   <button onclick={() => fileInput?.click()}>Importar</button>
   <input type="file" accept="application/json" hidden bind:this={fileInput} onchange={onImport} />
