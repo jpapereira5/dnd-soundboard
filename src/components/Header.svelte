@@ -25,12 +25,6 @@
     <span class="num">{session.master}</span>
   </label>
 
-  <label class="crossfade">
-    <span class="muted">Crossfade</span>
-    <input type="number" min="0" step="500" bind:value={session.crossfadeMs} />
-    <span class="muted">ms</span>
-  </label>
-
   <span class="grow"></span>
 
   <button class="danger" onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
@@ -43,7 +37,8 @@
 {#if runtime.showHelp}
   <aside class="help">
     <ul>
-      <li><kbd>1</kbd>–<kbd>9</kbd> ativam a cena com crossfade. Clique numa cena só a mostra, duplo clique ativa.</li>
+      <li><kbd>1</kbd>–<kbd>9</kbd> fazem fade in à cena e fade out ao que estava a tocar. Clique numa cena só a mostra, duplo clique faz fade in.</li>
+      <li>O tempo de fade é por cena e aplica-se a todas as suas tracks.</li>
       <li><kbd>Q</kbd>–<kbd>P</kbd>, <kbd>A</kbd>–<kbd>L</kbd>, <kbd>Z</kbd>–<kbd>M</kbd> disparam efeitos pela ordem em que estão.</li>
       <li><kbd>Esc</kbd> ou <kbd>0</kbd> fazem fade out a tudo.</li>
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
@@ -66,18 +61,13 @@
     font-size: 1.2rem;
     margin: 0 0.6rem 0 0;
   }
-  .master,
-  .crossfade {
+  .master {
     display: flex;
     align-items: center;
     gap: 0.4rem;
   }
   .master input[type='range'] {
     width: 10rem;
-  }
-  .crossfade input {
-    width: 5.5em;
-    padding: 0.2rem 0.4rem;
   }
   .num {
     width: 2.2em;

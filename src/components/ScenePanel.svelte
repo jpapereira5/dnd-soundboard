@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, stopAll, removeScene, moveScene, addTrack } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, moveScene, addTrack } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -19,8 +19,13 @@
 <section class="scene">
   <div class="row head">
     <input class="name" type="text" bind:value={scene.name} />
-    <button class="primary" onclick={() => activateScene(scene.id)}>▶ Ativar cena</button>
-    <button disabled={!active} onclick={() => stopAll()}>Fade out</button>
+    <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
+    <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
+    <label class="fade">
+      <span class="muted">Fade</span>
+      <input type="number" min="0" step="500" bind:value={scene.fadeMs} />
+      <span class="muted">ms</span>
+    </label>
     <span class="grow"></span>
     <button class="icon" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
     <button class="icon" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
@@ -54,6 +59,15 @@
   }
   .grow {
     flex: 1;
+  }
+  .fade {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .fade input {
+    width: 5.5em;
+    padding: 0.2rem 0.4rem;
   }
   .grid {
     display: grid;

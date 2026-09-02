@@ -8,10 +8,9 @@ const STORAGE_KEY = 'dnd-soundboard-v1'
 function defaultSession(): Session {
   return {
     version: 1,
-    scenes: [{ id: uid(), name: 'Taberna', tracks: [] }],
+    scenes: [{ id: uid(), name: 'Taberna', fadeMs: 3000, tracks: [] }],
     sfx: [],
     master: 80,
-    crossfadeMs: 3000,
   }
 }
 
@@ -27,7 +26,7 @@ function load(): Session {
 
 /** Fills in missing fields so older or hand-edited files still load. */
 function normalize(data: unknown): Session {
-  const d = (data ?? {}) as Partial<Session>
+  const d = (data ?? {}) as Partial<Session> & { crossfadeMs?: number }
   const scenes = Array.isArray(d.scenes) ? d.scenes : []
   const sfx = Array.isArray(d.sfx) ? d.sfx : []
   return {
@@ -35,6 +34,8 @@ function normalize(data: unknown): Session {
     scenes: scenes.map((s) => ({
       id: s.id ?? uid(),
       name: s.name ?? 'Cena',
+      // Older files had a global crossfade instead of a per-scene fade.
+      fadeMs: s.fadeMs ?? d.crossfadeMs ?? 3000,
       tracks: (Array.isArray(s.tracks) ? s.tracks : []).map((t) => ({
         id: t.id ?? uid(),
         ytId: t.ytId,
@@ -43,7 +44,6 @@ function normalize(data: unknown): Session {
         volume: clamp(t.volume ?? 70),
         loop: t.loop ?? true,
         shuffle: t.shuffle ?? false,
-        fadeMs: t.fadeMs ?? 2000,
       })),
     })),
     sfx: sfx.map((s) => ({
@@ -53,7 +53,6 @@ function normalize(data: unknown): Session {
       volume: clamp(s.volume ?? 100),
     })),
     master: clamp(d.master ?? 80),
-    crossfadeMs: d.crossfadeMs ?? 3000,
   }
 }
 
@@ -147,11 +146,16 @@ export function getPlayer(id: string): TrackPlayer | undefined {
 }
 
 function findTrack(id: string): Track | undefined {
-  for (const scene of session.scenes) {
-    const t = scene.tracks.find((t) => t.id === id)
-    if (t) return t
-  }
-  return undefined
+  return findSceneOfTrack(id)?.tracks.find((t) => t.id === id)
+}
+
+function findSceneOfTrack(id: string): Scene | undefined {
+  return session.scenes.find((s) => s.tracks.some((t) => t.id === id))
+}
+
+/** Fade time that applies to a track: its scene's. SFX are cut instantly. */
+function fadeFor(id: string): number {
+  return findSceneOfTrack(id)?.fadeMs ?? 0
 }
 
 // ---------------------------------------------------------------------------
@@ -172,40 +176,53 @@ export function viewScene(sceneId: string) {
   armScene(sceneId)
 }
 
-/** Crossfade: everything outside the scene fades out, the scene's tracks fade in. */
+/**
+ * Fade the scene in. Whatever else is playing fades out with its own
+ * scene's fade time, so switching scenes is a crossfade.
+ */
 export function activateScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return
   armScene(sceneId)
   runtime.activeSceneId = sceneId
   runtime.viewSceneId = sceneId
-  const fade = session.crossfadeMs
   const wanted = new Set(scene.tracks.map((t) => t.id))
   for (const [id, player] of players) {
     if (wanted.has(id)) continue
-    if (player.active && !session.sfx.some((s) => s.id === id)) player.stop(fade)
+    if (player.active && !session.sfx.some((s) => s.id === id)) player.stop(fadeFor(id))
   }
   pendingPlays.clear()
   for (const track of scene.tracks) {
     const player = players.get(track.id)
-    if (!player) pendingPlays.set(track.id, fade)
-    else if (!player.active) player.play(fade)
+    if (!player) pendingPlays.set(track.id, scene.fadeMs)
+    else if (!player.active) player.play(scene.fadeMs)
   }
 }
 
-/** Fade every ambient track out. SFX are cut immediately. */
-export function stopAll(fadeMs = session.crossfadeMs) {
+/** Fade only this scene's tracks out. */
+export function fadeOutScene(sceneId: string) {
+  const scene = session.scenes.find((s) => s.id === sceneId)
+  if (!scene) return
+  if (runtime.activeSceneId === sceneId) runtime.activeSceneId = null
+  for (const track of scene.tracks) {
+    pendingPlays.delete(track.id)
+    players.get(track.id)?.stop(scene.fadeMs)
+  }
+}
+
+/** Fade every ambient track out with its scene's fade. SFX are cut immediately. */
+export function stopAll(immediate = false) {
   runtime.activeSceneId = null
   pendingPlays.clear()
-  const sfxIds = new Set(session.sfx.map((s) => s.id))
-  for (const [id, player] of players) player.stop(sfxIds.has(id) ? 0 : fadeMs)
+  for (const [id, player] of players) player.stop(immediate ? 0 : fadeFor(id))
 }
 
 export function toggleTrack(track: Track) {
   const player = players.get(track.id)
   if (!player) return
-  if (player.active) player.stop(track.fadeMs)
-  else player.play(track.fadeMs)
+  const fade = fadeFor(track.id)
+  if (player.active) player.stop(fade)
+  else player.play(fade)
 }
 
 export function nextInPlaylist(track: Track) {
@@ -238,7 +255,7 @@ export function playSfx(sfx: Sfx) {
 // ---------------------------------------------------------------------------
 
 export function addScene(name = 'Nova cena'): Scene {
-  const scene: Scene = { id: uid(), name, tracks: [] }
+  const scene: Scene = { id: uid(), name, fadeMs: 3000, tracks: [] }
   session.scenes.push(scene)
   viewScene(scene.id)
   return scene
@@ -277,7 +294,6 @@ export function addTrack(sceneId: string, ytId: string, kind: Kind, title = ''):
     volume: 70,
     loop: true,
     shuffle: false,
-    fadeMs: 2000,
   }
   scene.tracks.push(track)
   return track
@@ -317,12 +333,11 @@ export function exportSession() {
 
 export async function importSession(file: File) {
   const data = normalize(JSON.parse(await file.text()))
-  stopAll(0)
+  stopAll(true)
   for (const id of [...players.keys()]) unregisterPlayer(id)
   session.scenes = data.scenes
   session.sfx = data.sfx
   session.master = data.master
-  session.crossfadeMs = data.crossfadeMs
   runtime.armed = []
   runtime.activeSceneId = null
   runtime.viewSceneId = session.scenes[0]?.id ?? null

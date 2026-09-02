@@ -56,11 +56,6 @@
       {#if track.kind === 'playlist'}
         <label><input type="checkbox" bind:checked={track.shuffle} onchange={() => applyTrackSettings(track)} /> Shuffle</label>
       {/if}
-      <label class="fade">
-        Fade
-        <input type="number" min="0" step="500" bind:value={track.fadeMs} />
-        <span class="muted">ms</span>
-      </label>
     </div>
   </div>
 </div>
@@ -120,12 +115,5 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-  }
-  .fade {
-    margin-left: auto;
-  }
-  .fade input {
-    width: 5.5em;
-    padding: 0.2rem 0.4rem;
   }
 </style>

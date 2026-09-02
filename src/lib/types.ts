@@ -9,12 +9,13 @@ export interface Track {
   volume: number
   loop: boolean
   shuffle: boolean
-  fadeMs: number
 }
 
 export interface Scene {
   id: string
   name: string
+  /** fade in/out time for every track in the scene */
+  fadeMs: number
   tracks: Track[]
 }
 
@@ -32,8 +33,6 @@ export interface Session {
   sfx: Sfx[]
   /** 0..100 */
   master: number
-  /** fade used when switching scenes */
-  crossfadeMs: number
 }
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'fading' | 'error'
