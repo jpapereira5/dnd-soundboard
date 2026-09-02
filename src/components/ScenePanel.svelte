@@ -23,8 +23,13 @@
     <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
     <label class="fade">
       <span class="muted">Fade</span>
-      <input type="number" min="0" step="500" bind:value={scene.fadeMs} />
-      <span class="muted">ms</span>
+      <input
+        type="number"
+        min="0"
+        step="0.5"
+        bind:value={() => scene.fadeMs / 1000, (v) => (scene.fadeMs = Math.max(0, Number(v) || 0) * 1000)}
+      />
+      <span class="muted">s</span>
     </label>
     <span class="grow"></span>
     <button class="icon" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
