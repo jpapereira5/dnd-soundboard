@@ -76,5 +76,7 @@
   .grid {
     display: grid;
     gap: 0.5rem;
+    /* rows hug their content on the left instead of stretching */
+    justify-items: start;
   }
 </style>

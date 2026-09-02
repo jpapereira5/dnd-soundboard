@@ -57,14 +57,16 @@
     padding: 0.5rem 0.7rem;
     flex-wrap: nowrap;
     overflow: visible;
+    max-width: 100%;
   }
   .track.playing {
     border-color: var(--accent-2);
     box-shadow: 0 0 0 1px var(--accent-2);
   }
   .title {
-    flex: 1;
-    min-width: 8rem;
+    flex: 0 1 36rem;
+    width: 36rem;
+    min-width: 12rem;
     background: transparent;
     border-color: transparent;
     padding-left: 0.3rem;

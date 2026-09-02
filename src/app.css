@@ -119,6 +119,7 @@ kbd {
 }
 
 .card {
+  position: relative;
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -128,7 +129,9 @@ kbd {
 /* Players stay in the DOM so audio plays, but take no space: this is an
    audio-only board by design. Note the YouTube ToS ask for a visible player. */
 .player-host {
-  position: relative;
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
   height: 0;
   overflow: hidden;
