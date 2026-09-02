@@ -8,7 +8,12 @@
 </script>
 
 <section class="sfx">
-  <h3>Efeitos</h3>
+  <div class="head">
+    <h3>Efeitos</h3>
+    {#if scene.sfx.length === 0}
+      <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
+    {/if}
+  </div>
 
   <div class="grid">
     {#each scene.sfx as sfx, i (sfx.id)}
@@ -36,13 +41,28 @@
     {/each}
   </div>
 
-  <AddMediaForm actions={[{ label: 'Adicionar', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
+  {#if scene.sfx.length > 0}
+    <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
+  {/if}
 </section>
 
 <style>
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.6rem;
+  }
   h3 {
-    margin: 0 0 0.6rem;
+    margin: 0;
     font-size: 1rem;
+    flex: 0 0 6rem;
+    padding-left: 0.8rem;
+  }
+  .head :global(form.add) {
+    flex: 1 1 24rem;
+    margin-top: 0;
   }
   .grid {
     display: grid;

@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Group, Scene } from '../lib/types'
   import { GROUPS } from '../lib/types'
-  import { runtime, moveTrackTo, toggleGroup, groupPlaying } from '../lib/state.svelte'
+  import { runtime, moveTrackTo, toggleGroup, groupPlaying, addTrack } from '../lib/state.svelte'
   import TrackCard from './TrackCard.svelte'
+  import AddMediaForm from './AddMediaForm.svelte'
 
   let { scene, group }: { scene: Scene; group: Group } = $props()
 
@@ -77,6 +78,13 @@
     <h3 class="head">{meta.label}</h3>
   {/if}
   <div class="body" class:drop-end={dropAt === tracks.length}>
+    {#if tracks.length === 0}
+      <!-- Empty group: the add form sits in the row. Once a track exists it moves to the bottom of the box. -->
+      <AddMediaForm
+        allowPlaylist
+        actions={[{ label: `+ ${meta.label}`, onadd: (ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title) }]}
+      />
+    {/if}
     {#each tracks as track, i (track.id)}
       <div class="item" data-index={i} class:dragging={runtime.dragTrackId === track.id} class:drop-before={dropAt === i}>
         <span
@@ -118,6 +126,9 @@
     gap: 0.5rem;
     /* Room for the insertion bar and for drops into an empty group. */
     min-height: 1.5rem;
+  }
+  .body :global(form.add) {
+    margin-top: 0;
   }
   .item {
     position: relative;

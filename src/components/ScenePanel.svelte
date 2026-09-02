@@ -14,6 +14,11 @@
     label,
     onadd: (ytId: string, kind: 'video' | 'playlist', title: string) => addTrack(scene.id, group, ytId, kind, title),
   })
+  const has = (group: Group) => scene.tracks.some((t) => t.group === group)
+  // Bottom-of-box forms only offer groups that already have a track; an
+  // empty group shows its own form in its row (see TrackSection).
+  const modeActions = $derived([...(has('music') ? [adder('+ Música', 'music')] : []), ...(has('battle') ? [adder('+ Batalha', 'battle')] : [])])
+  const ambienceActions = $derived(has('ambience') ? [adder('+ Ambiente', 'ambience')] : [])
 
   function remove() {
     const n = scene.tracks.length + scene.sfx.length
@@ -39,11 +44,15 @@
       <TrackSection {scene} group="music" />
       <hr />
       <TrackSection {scene} group="battle" />
-      <AddMediaForm allowPlaylist actions={[adder('+ Música', 'music'), adder('+ Batalha', 'battle')]} />
+      {#if modeActions.length}
+        <AddMediaForm allowPlaylist actions={modeActions} />
+      {/if}
     </div>
     <div class="box stack">
       <TrackSection {scene} group="ambience" />
-      <AddMediaForm allowPlaylist actions={[adder('+ Ambiente', 'ambience')]} />
+      {#if ambienceActions.length}
+        <AddMediaForm allowPlaylist actions={ambienceActions} />
+      {/if}
     </div>
     <div class="box">
       <SfxSection {scene} />
