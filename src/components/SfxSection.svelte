@@ -8,51 +8,52 @@
 </script>
 
 <section class="sfx">
-  <div class="head">
+  <div class="line">
     <h3>Efeitos</h3>
-    {#if scene.sfx.length === 0}
-      <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
-    {/if}
-  </div>
-
-  <div class="grid">
-    {#each scene.sfx as sfx, i (sfx.id)}
-      {@const status = runtime.status[sfx.id] ?? 'idle'}
-      <div class="card" class:playing={status === 'playing'}>
-        <div class="body">
-          <button class="fire primary" disabled={status === 'error'} onclick={() => playSfx(sfx)}>
-            {#if SFX_KEYS[i]}<kbd>{SFX_KEYS[i].toUpperCase()}</kbd>{/if}
-            <span class="label">{sfx.title || runtime.titles[sfx.id] || 'Efeito'}</span>
-          </button>
-          {#if status === 'error'}
-            <div class="error">Erro: {runtime.errors[sfx.id]}</div>
-          {/if}
-          <div class="row">
-            <input class="name" type="text" bind:value={sfx.title} placeholder="Nome" />
-            <button class="icon danger" title="Remover efeito" onclick={() => removeSfx(scene.id, sfx.id)}>✕</button>
-          </div>
-          <label class="vol">
-            <span class="muted">Vol</span>
-            <input type="range" min="0" max="100" bind:value={sfx.volume} oninput={() => applySfxVolume(sfx)} />
-            <span class="num">{sfx.volume}</span>
-          </label>
+    <div class="content">
+      {#if scene.sfx.length === 0}
+        <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
+      {:else}
+        <div class="grid">
+          {#each scene.sfx as sfx, i (sfx.id)}
+            {@const status = runtime.status[sfx.id] ?? 'idle'}
+            <div class="card" class:playing={status === 'playing'}>
+              <div class="body">
+                <button class="fire primary" disabled={status === 'error'} onclick={() => playSfx(sfx)}>
+                  {#if SFX_KEYS[i]}<kbd>{SFX_KEYS[i].toUpperCase()}</kbd>{/if}
+                  <span class="label">{sfx.title || runtime.titles[sfx.id] || 'Efeito'}</span>
+                </button>
+                {#if status === 'error'}
+                  <div class="error">Erro: {runtime.errors[sfx.id]}</div>
+                {/if}
+                <div class="row">
+                  <input class="name" type="text" bind:value={sfx.title} placeholder="Nome" />
+                  <button class="icon danger" title="Remover efeito" onclick={() => removeSfx(scene.id, sfx.id)}>✕</button>
+                </div>
+                <label class="vol">
+                  <span class="muted">Vol</span>
+                  <input type="range" min="0" max="100" bind:value={sfx.volume} oninput={() => applySfxVolume(sfx)} />
+                  <span class="num">{sfx.volume}</span>
+                </label>
+              </div>
+            </div>
+          {/each}
         </div>
-      </div>
-    {/each}
+      {/if}
+    </div>
   </div>
-
   {#if scene.sfx.length > 0}
     <AddMediaForm actions={[{ label: '+ Efeito', onadd: (ytId, _kind, title) => addSfx(scene.id, ytId, title) }]} />
   {/if}
 </section>
 
 <style>
-  .head {
+  /* Heading on the left, centred on the content, like the track groups. */
+  .line {
     display: flex;
     align-items: center;
     gap: 0.8rem;
     flex-wrap: wrap;
-    margin-bottom: 0.6rem;
   }
   h3 {
     margin: 0;
@@ -60,9 +61,15 @@
     flex: 0 0 6rem;
     padding-left: 0.8rem;
   }
-  .head :global(form.add) {
+  .content {
     flex: 1 1 24rem;
+    min-width: 0;
+  }
+  .content :global(form.add) {
     margin-top: 0;
+  }
+  .sfx > :global(form.add) {
+    margin-top: 0.6rem;
   }
   .grid {
     display: grid;
