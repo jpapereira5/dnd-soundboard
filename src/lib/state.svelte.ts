@@ -12,7 +12,6 @@ function defaultSession(): Session {
     sfx: [],
     master: 80,
     crossfadeMs: 3000,
-    hideVideo: false,
   }
 }
 
@@ -55,7 +54,6 @@ function normalize(data: unknown): Session {
     })),
     master: clamp(d.master ?? 80),
     crossfadeMs: d.crossfadeMs ?? 3000,
-    hideVideo: d.hideVideo ?? false,
   }
 }
 
@@ -325,7 +323,6 @@ export async function importSession(file: File) {
   session.sfx = data.sfx
   session.master = data.master
   session.crossfadeMs = data.crossfadeMs
-  session.hideVideo = data.hideVideo
   runtime.armed = []
   runtime.activeSceneId = null
   runtime.viewSceneId = session.scenes[0]?.id ?? null

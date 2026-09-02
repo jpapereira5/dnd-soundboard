@@ -46,7 +46,6 @@
       <li><kbd>1</kbd>–<kbd>9</kbd> ativam a cena com crossfade. Clique numa cena só a mostra, duplo clique ativa.</li>
       <li><kbd>Q</kbd>–<kbd>P</kbd>, <kbd>A</kbd>–<kbd>L</kbd>, <kbd>Z</kbd>–<kbd>M</kbd> disparam efeitos pela ordem em que estão.</li>
       <li><kbd>Esc</kbd> ou <kbd>0</kbd> fazem fade out a tudo.</li>
-      <li><kbd>V</kbd> esconde ou mostra a imagem dos leitores. O som não é afetado.</li>
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>As tracks de uma cena só carregam quando a abres pela primeira vez. Abre as cenas da sessão antes de começar para o crossfade ser imediato.</li>
       <li>Tudo fica guardado neste browser. Usa Exportar para levar a sessão para outro computador.</li>

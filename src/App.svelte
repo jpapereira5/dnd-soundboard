@@ -6,20 +6,10 @@
   import ScenePanel from './components/ScenePanel.svelte'
   import SfxBoard from './components/SfxBoard.svelte'
 
-  // Body class so the CSS rule reaches every player without prop drilling.
-  $effect(() => {
-    document.body.classList.toggle('hide-video', session.hideVideo)
-  })
-
   function onKeydown(e: KeyboardEvent) {
     if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return
     const key = e.key.toLowerCase()
 
-    if (key === 'v') {
-      session.hideVideo = !session.hideVideo
-      e.preventDefault()
-      return
-    }
     if (key === 'escape' || key === '0') {
       stopAll()
       e.preventDefault()
