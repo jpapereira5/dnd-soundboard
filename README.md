@@ -4,7 +4,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 
 ## Funcionalidades
 
-- **Cenas**: grupos de tracks (Taberna, Combate, Floresta...). Fade in numa cena faz fade out ao que estava a tocar. Todos os fades duram 4 segundos.
+- **Cenas**: grupos de tracks (Taberna, Combate, Floresta...). Fade in numa cena faz fade out ao que estava a tocar. Todos os fades duram 8 segundos.
 - **Tracks**: vídeo ou playlist do YouTube, sempre em loop. Volume independente, shuffle em playlists.
 - **Efeitos (SFX)**: sons curtos disparados por botão ou tecla, sem loop.
 - **Atalhos**: `1`–`9` ativam cenas, `Q`–`P`, `A`–`L`, `Z`–`M` disparam efeitos, `Esc` faz fade out a tudo.
@@ -16,7 +16,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 - Vídeos monetizados podem mostrar anúncios. YouTube Premium na conta do browser resolve.
 - Os leitores do YouTube ficam na página com altura zero: só há áudio. Os termos do YouTube pedem um leitor visível, decisão assumida pelo autor.
 - O browser só deixa tocar som depois de um clique na página.
-- O loop de um vídeo usa dois leitores em crossfade de 4 segundos entre o fim e o início, por isso é contínuo. Entre faixas de uma playlist a transição é a do YouTube, com um pequeno silêncio.
+- O loop de um vídeo usa dois leitores em crossfade de 8 segundos entre o fim e o início, por isso é contínuo. Entre faixas de uma playlist a transição é a do YouTube, com um pequeno silêncio.
 - Pensado para desktop. Browsers móveis bloqueiam vários leitores em simultâneo.
 
 ## Desenvolvimento

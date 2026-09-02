@@ -18,7 +18,7 @@ export interface Scene {
 }
 
 /** Fade in/out time used everywhere: scenes, tracks and the loop crossfade. */
-export const FADE_MS = 4000
+export const FADE_MS = 8000
 
 export interface Sfx {
   id: string
