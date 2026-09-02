@@ -5,7 +5,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 ## Funcionalidades
 
 - **Cenas** (Taberna, Floresta, Cripta...): fade in numa cena faz fade out ao que estava a tocar. Todos os fades duram 8 segundos.
-- **Quatro grupos por cena**: Ambiente toca sempre com a cena; Música e Batalha alternam, o botão de uma faz fade out à outra; Efeitos são sons curtos disparados por botão ou tecla, sem loop.
+- **Quatro grupos por cena**: Ambiente (várias faixas) toca sempre com a cena; Música e Batalha (uma faixa ou playlist cada) alternam, o botão de uma faz fade out à outra; Efeitos são sons curtos disparados por botão ou tecla, sem loop.
 - **Tracks**: vídeo ou playlist do YouTube, sempre em loop. Volume independente, shuffle em playlists.
 - **Atalhos**: `1`–`9` ativam cenas, `Q`–`P`, `A`–`L`, `Z`–`M` disparam os efeitos da cena no ecrã, `Esc` faz fade out a tudo.
 - **Persistência** em `localStorage`, com exportação e importação em JSON.

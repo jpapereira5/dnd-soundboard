@@ -9,8 +9,8 @@ export type Group = 'ambience' | 'music' | 'battle'
 
 export const GROUPS: { id: Group; label: string; hint: string }[] = [
   { id: 'ambience', label: 'Ambiente', hint: 'Toca sempre que a cena está ativa: chuva, taberna, floresta...' },
-  { id: 'music', label: 'Música', hint: 'Música da cena fora de combate.' },
-  { id: 'battle', label: 'Batalha', hint: 'Entra no lugar da música quando começa o combate.' },
+  { id: 'music', label: 'Música', hint: 'Uma faixa ou playlist: a música da cena fora de combate.' },
+  { id: 'battle', label: 'Batalha', hint: 'Uma faixa ou playlist: entra no lugar da música quando começa o combate.' },
 ]
 
 export interface Track {

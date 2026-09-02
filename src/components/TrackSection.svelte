@@ -9,6 +9,8 @@
 
   const meta = GROUPS.find((g) => g.id === group)!
   const tracks = $derived(scene.tracks.filter((t) => t.group === group))
+  /** Music and battle hold one track each; ambience can layer several. */
+  const canAdd = $derived(group === 'ambience' || tracks.length === 0)
   /** This group is sounding in the active scene. */
   const on = $derived(groupIsOn(scene.id, group))
   const sceneActive = $derived(runtime.activeSceneId === scene.id)
@@ -44,7 +46,9 @@
     {/each}
   </div>
 
-  <AddMediaForm label="Adicionar" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title)} />
+  {#if canAdd}
+    <AddMediaForm label="Adicionar" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title)} />
+  {/if}
 </section>
 
 <style>

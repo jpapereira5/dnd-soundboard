@@ -348,6 +348,8 @@ export function moveSceneTo(sceneId: string, target: number) {
 export function addTrack(sceneId: string, group: Group, ytId: string, kind: Kind, title = ''): Track | null {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return null
+  // Music and battle take a single track (a playlist covers variety); ambience can layer.
+  if (group !== 'ambience' && scene.tracks.some((t) => t.group === group)) return null
   const track: Track = {
     id: uid(),
     ytId,
