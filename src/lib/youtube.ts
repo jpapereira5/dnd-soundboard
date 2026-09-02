@@ -46,7 +46,7 @@ const FADE_STEP_MS = 40
  * - `scene`: slow start, then a steady climb that is still audible in the
  *   last second. Used for scene and track fades: on YouTube's scale the top
  *   fifth of the range barely registers, so a curve that flattens early
- *   makes an 8 s fade feel like 5.
+ *   makes a fade feel shorter than it is.
  * - `cross`: smoothstep, symmetric with cross(t) + cross(1 - t) = 1, so the
  *   two sides of the loop crossfade always sum to the same volume.
  */

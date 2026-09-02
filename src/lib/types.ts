@@ -42,7 +42,7 @@ export interface Scene {
 }
 
 /** Fade in/out time used everywhere: scenes, tracks and the loop crossfade. */
-export const FADE_MS = 8000
+export const FADE_MS = 6000
 
 export interface Session {
   version: 2
