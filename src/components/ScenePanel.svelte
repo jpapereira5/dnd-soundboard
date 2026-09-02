@@ -18,12 +18,14 @@
 
 <section class="scene">
   <div class="row head">
-    <input class="name" type="text" bind:value={scene.name} />
+    <div class="name-group">
+      <input class="name" type="text" bind:value={scene.name} />
+      <button class="icon" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
+      <button class="icon" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
+    </div>
     <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
     <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
     <span class="grow"></span>
-    <button class="icon" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
-    <button class="icon" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
     <button class="danger" onclick={remove}>Apagar cena</button>
   </div>
 
@@ -47,10 +49,19 @@
   .head {
     margin-bottom: 1rem;
   }
+  /* Name and its move arrows never split across lines. */
+  .name-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 0 1 22rem;
+    min-width: 0;
+  }
   .name {
     font-size: 1.2rem;
     font-weight: 600;
-    min-width: 12rem;
+    flex: 1;
+    min-width: 0;
   }
   .grow {
     flex: 1;
