@@ -7,19 +7,20 @@
 
   let { scene, group }: { scene: Scene; group: Group } = $props()
 
-  const meta = GROUPS.find((g) => g.id === group)!
+  const meta = $derived(GROUPS.find((g) => g.id === group)!)
   const tracks = $derived(scene.tracks.filter((t) => t.group === group))
-  /** Music and battle hold one track each; ambience can layer several. */
-  const canAdd = $derived(group === 'ambience' || tracks.length === 0)
+  /** Music and battle hold one track each, on one line; ambience can layer several. */
+  const single = $derived(group !== 'ambience')
+  const canAdd = $derived(!single || tracks.length === 0)
   /** This group is sounding in the active scene. */
   const on = $derived(groupIsOn(scene.id, group))
   const sceneActive = $derived(runtime.activeSceneId === scene.id)
 </script>
 
-<section class="group" class:on>
-  <header class="row head">
+<section class="group" class:on class:single>
+  <div class="row head">
     <h3>{meta.label}</h3>
-    {#if group === 'music' || group === 'battle'}
+    {#if single}
       <button
         class:primary={on}
         title={on
@@ -34,21 +35,19 @@
     {:else}
       <span class="muted hint">{on ? 'a tocar' : 'toca sempre com a cena'}</span>
     {/if}
-  </header>
+  </div>
 
-  {#if tracks.length === 0}
-    <p class="muted empty">{meta.hint}</p>
-  {/if}
-
-  <div class="grid">
+  <div class="body">
+    {#if tracks.length === 0}
+      <p class="muted empty">{meta.hint}</p>
+    {/if}
     {#each tracks as track (track.id)}
       <TrackCard {track} sceneId={scene.id} />
     {/each}
+    {#if canAdd}
+      <AddMediaForm label="Adicionar" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title)} />
+    {/if}
   </div>
-
-  {#if canAdd}
-    <AddMediaForm label="Adicionar" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, group, ytId, kind, title)} />
-  {/if}
 </section>
 
 <style>
@@ -76,11 +75,33 @@
     margin: 0;
     font-size: 0.9rem;
   }
-  .grid {
+  .body {
     display: grid;
     gap: 0.5rem;
   }
   .group :global(form.add) {
     margin-top: 0.6rem;
+  }
+
+  /* Single-track groups: heading, mode button and the track on one line. */
+  .single {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .single .head {
+    margin: 0;
+    flex: 0 0 auto;
+  }
+  .single .body {
+    flex: 1 1 24rem;
+    min-width: 0;
+  }
+  .single .empty {
+    display: none;
+  }
+  .single :global(form.add) {
+    margin-top: 0;
   }
 </style>
