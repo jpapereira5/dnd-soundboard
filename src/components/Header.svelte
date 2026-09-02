@@ -39,8 +39,9 @@
   <aside class="help">
     <ul>
       <li><kbd>1</kbd>–<kbd>9</kbd> fazem fade in à cena e fade out ao que estava a tocar. Clique numa cena só a mostra, duplo clique faz fade in.</li>
+      <li>Cada cena tem Ambiente, Música, Batalha e Efeitos. O ambiente toca sempre com a cena. Música e Batalha alternam: o botão de uma faz fade out à outra. Fade in numa cena começa em Música.</li>
       <li>Todos os fades duram 8 segundos.</li>
-      <li><kbd>Q</kbd>–<kbd>P</kbd>, <kbd>A</kbd>–<kbd>L</kbd>, <kbd>Z</kbd>–<kbd>M</kbd> disparam efeitos pela ordem em que estão.</li>
+      <li><kbd>Q</kbd>–<kbd>P</kbd>, <kbd>A</kbd>–<kbd>L</kbd>, <kbd>Z</kbd>–<kbd>M</kbd> disparam os efeitos da cena que está no ecrã, pela ordem em que estão.</li>
       <li><kbd>Esc</kbd> ou <kbd>0</kbd> fazem fade out a tudo.</li>
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>Todas as tracks carregam ao abrir a página e ficam pré-carregadas em silêncio, prontas a arrancar sem atraso.</li>

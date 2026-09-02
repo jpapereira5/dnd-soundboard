@@ -1,15 +1,14 @@
 import { untrack } from 'svelte'
-import type { Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
-import { FADE_MS, uid } from './types'
+import type { Group, Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
+import { FADE_MS, GROUPS, uid } from './types'
 import { TrackPlayer } from './youtube'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
 
 function defaultSession(): Session {
   return {
-    version: 1,
-    scenes: [{ id: uid(), name: 'Taberna', tracks: [] }],
-    sfx: [],
+    version: 2,
+    scenes: [{ id: uid(), name: 'Taberna', tracks: [], sfx: [] }],
     master: 80,
   }
 }
@@ -24,33 +23,47 @@ function load(): Session {
   return defaultSession()
 }
 
-/** Fills in missing fields so older or hand-edited files still load. */
+const GROUP_IDS = new Set<string>(GROUPS.map((g) => g.id))
+
+/**
+ * Fills in missing fields so older or hand-edited files still load.
+ * Version 1 files had one global SFX list and untyped tracks: those tracks
+ * become music, and the effects move into the first scene.
+ */
 function normalize(data: unknown): Session {
-  const d = (data ?? {}) as Partial<Session>
-  const scenes = Array.isArray(d.scenes) ? d.scenes : []
-  const sfx = Array.isArray(d.sfx) ? d.sfx : []
-  return {
-    version: 1,
-    scenes: scenes.map((s) => ({
-      id: s.id ?? uid(),
-      name: s.name ?? 'Cena',
-      tracks: (Array.isArray(s.tracks) ? s.tracks : []).map((t) => ({
+  const d = (data ?? {}) as Partial<Session> & { sfx?: Partial<Sfx>[] }
+  const rawScenes = Array.isArray(d.scenes) ? d.scenes : []
+  const normSfx = (list: unknown): Sfx[] =>
+    (Array.isArray(list) ? (list as Partial<Sfx>[]) : [])
+      .filter((s) => typeof s.ytId === 'string')
+      .map((s) => ({
+        id: s.id ?? uid(),
+        ytId: s.ytId!,
+        title: s.title ?? '',
+        volume: clamp(s.volume ?? 100),
+      }))
+  const scenes: Scene[] = rawScenes.map((s) => ({
+    id: s.id ?? uid(),
+    name: s.name ?? 'Cena',
+    tracks: (Array.isArray(s.tracks) ? s.tracks : [])
+      .filter((t) => typeof t.ytId === 'string')
+      .map((t) => ({
         id: t.id ?? uid(),
-        ytId: t.ytId,
+        ytId: t.ytId!,
         kind: t.kind === 'playlist' ? 'playlist' : 'video',
         title: t.title ?? '',
         volume: clamp(t.volume ?? 70),
         shuffle: t.shuffle ?? false,
+        group: t.group && GROUP_IDS.has(t.group) ? t.group : 'music',
       })),
-    })),
-    sfx: sfx.map((s) => ({
-      id: s.id ?? uid(),
-      ytId: s.ytId,
-      title: s.title ?? '',
-      volume: clamp(s.volume ?? 100),
-    })),
-    master: clamp(d.master ?? 80),
+    sfx: normSfx(s.sfx),
+  }))
+  const legacySfx = normSfx(d.sfx)
+  if (legacySfx.length) {
+    if (!scenes.length) scenes.push({ id: uid(), name: 'Cena', tracks: [], sfx: [] })
+    scenes[0].sfx.push(...legacySfx)
   }
+  return { version: 2, scenes, master: clamp(d.master ?? 80) }
 }
 
 function clamp(v: number): number {
@@ -78,18 +91,24 @@ export const runtime = $state({
   viewSceneId: session.scenes[0]?.id ?? null,
   /** Scene that was last activated (crossfaded in). */
   activeSceneId: null as string | null,
+  /** true while the active scene plays its battle tracks instead of its music. */
+  battle: false,
   status: {} as Record<string, PlayerStatus>,
   errors: {} as Record<string, string>,
   titles: {} as Record<string, string>,
   showHelp: false,
 })
 
-// Persist on every change. $effect.root lets us do this outside a component.
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+}
+
+// Write the normalized session once now (so an old-format file is migrated on
+// disk right away), then on every change. $effect.root lets us do this outside
+// a component.
+persist()
 $effect.root(() => {
-  $effect(() => {
-    const json = JSON.stringify(session)
-    localStorage.setItem(STORAGE_KEY, json)
-  })
+  $effect(persist)
 })
 
 // ---------------------------------------------------------------------------
@@ -129,7 +148,7 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
       runtime.titles[id] = title
       const track = findTrack(id)
       if (track && !track.title) track.title = title
-      const sfx = session.sfx.find((s) => s.id === id)
+      const sfx = findSfx(id)
       if (sfx && !sfx.title) sfx.title = title
     },
   })
@@ -151,16 +170,33 @@ export function getPlayer(id: string): TrackPlayer | undefined {
 }
 
 function findTrack(id: string): Track | undefined {
-  return findSceneOfTrack(id)?.tracks.find((t) => t.id === id)
+  for (const scene of session.scenes) {
+    const track = scene.tracks.find((t) => t.id === id)
+    if (track) return track
+  }
+  return undefined
 }
 
-function findSceneOfTrack(id: string): Scene | undefined {
-  return session.scenes.find((s) => s.tracks.some((t) => t.id === id))
+function findSfx(id: string): Sfx | undefined {
+  for (const scene of session.scenes) {
+    const sfx = scene.sfx.find((s) => s.id === id)
+    if (sfx) return sfx
+  }
+  return undefined
 }
 
 /** Scene tracks fade over FADE_MS; SFX are cut instantly. */
 function fadeFor(id: string): number {
-  return findSceneOfTrack(id) ? FADE_MS : 0
+  return findTrack(id) ? FADE_MS : 0
+}
+
+/** Groups that sound in the active scene right now. */
+function activeGroups(): Group[] {
+  return ['ambience', runtime.battle ? 'battle' : 'music']
+}
+
+export function groupIsOn(sceneId: string, group: Group): boolean {
+  return runtime.activeSceneId === sceneId && activeGroups().includes(group)
 }
 
 // ---------------------------------------------------------------------------
@@ -177,26 +213,44 @@ export function viewScene(sceneId: string) {
 }
 
 /**
- * Fade the scene in. Whatever else is playing fades out, so switching scenes
- * is a crossfade. Tracks that were not already playing start over (see
+ * Fade the scene in with its ambience plus music or battle, whichever mode
+ * is on. Every other scene track fades out, so switching scenes or modes is
+ * a crossfade. Tracks that were not already playing start over (see
  * TrackPlayer.play); ones already playing are left alone.
  */
-export function activateScene(sceneId: string) {
+function startScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return
   runtime.activeSceneId = sceneId
   runtime.viewSceneId = sceneId
-  const wanted = new Set(scene.tracks.map((t) => t.id))
+  const groups = activeGroups()
+  const wanted = new Set(scene.tracks.filter((t) => groups.includes(t.group)).map((t) => t.id))
   for (const [id, player] of players) {
     if (wanted.has(id)) continue
-    if (player.active && !session.sfx.some((s) => s.id === id)) player.stop(fadeFor(id))
+    if (player.active && findTrack(id)) player.stop(FADE_MS)
   }
   pendingPlays.clear()
-  for (const track of scene.tracks) {
-    const player = players.get(track.id)
-    if (!player) pendingPlays.set(track.id, FADE_MS)
+  for (const id of wanted) {
+    const player = players.get(id)
+    if (!player) pendingPlays.set(id, FADE_MS)
     else if (!player.active) player.play(FADE_MS)
   }
+}
+
+/** Scene start: ambience and music. Battle is an explicit step from there. */
+export function activateScene(sceneId: string) {
+  runtime.battle = false
+  startScene(sceneId)
+}
+
+/**
+ * Switch the scene between music and battle. Music fades out while battle
+ * fades in, or the reverse; ambience keeps playing. On a scene that is not
+ * active this also activates it, straight into the chosen mode.
+ */
+export function setBattle(sceneId: string, on: boolean) {
+  runtime.battle = on
+  startScene(sceneId)
 }
 
 /** Fade only this scene's tracks out. */
@@ -213,6 +267,7 @@ export function fadeOutScene(sceneId: string) {
 /** Fade every ambient track out. SFX are cut immediately. */
 export function stopAll(immediate = false) {
   runtime.activeSceneId = null
+  runtime.battle = false
   pendingPlays.clear()
   for (const [id, player] of players) player.stop(immediate ? 0 : fadeFor(id))
 }
@@ -263,7 +318,7 @@ export function playSfx(sfx: Sfx) {
 // ---------------------------------------------------------------------------
 
 export function addScene(name = 'Nova cena'): Scene {
-  const scene: Scene = { id: uid(), name, tracks: [] }
+  const scene: Scene = { id: uid(), name, tracks: [], sfx: [] }
   session.scenes.push(scene)
   viewScene(scene.id)
   // Return the reactive proxy, not the plain object we pushed.
@@ -274,6 +329,7 @@ export function removeScene(sceneId: string) {
   const index = session.scenes.findIndex((s) => s.id === sceneId)
   if (index < 0) return
   for (const track of session.scenes[index].tracks) unregisterPlayer(track.id)
+  for (const sfx of session.scenes[index].sfx) unregisterPlayer(sfx.id)
   session.scenes.splice(index, 1)
   if (runtime.activeSceneId === sceneId) runtime.activeSceneId = null
   if (runtime.viewSceneId === sceneId) runtime.viewSceneId = session.scenes[Math.max(0, index - 1)]?.id ?? null
@@ -289,7 +345,7 @@ export function moveSceneTo(sceneId: string, target: number) {
   session.scenes.splice(target, 0, scene)
 }
 
-export function addTrack(sceneId: string, ytId: string, kind: Kind, title = ''): Track | null {
+export function addTrack(sceneId: string, group: Group, ytId: string, kind: Kind, title = ''): Track | null {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return null
   const track: Track = {
@@ -299,6 +355,7 @@ export function addTrack(sceneId: string, ytId: string, kind: Kind, title = ''):
     title,
     volume: 70,
     shuffle: false,
+    group,
   }
   scene.tracks.push(track)
   return track
@@ -311,15 +368,19 @@ export function removeTrack(sceneId: string, trackId: string) {
   scene.tracks = scene.tracks.filter((t) => t.id !== trackId)
 }
 
-export function addSfx(ytId: string, title = ''): Sfx {
+export function addSfx(sceneId: string, ytId: string, title = ''): Sfx | null {
+  const scene = session.scenes.find((s) => s.id === sceneId)
+  if (!scene) return null
   const sfx: Sfx = { id: uid(), ytId, title, volume: 100 }
-  session.sfx.push(sfx)
+  scene.sfx.push(sfx)
   return sfx
 }
 
-export function removeSfx(sfxId: string) {
+export function removeSfx(sceneId: string, sfxId: string) {
+  const scene = session.scenes.find((s) => s.id === sceneId)
+  if (!scene) return
   unregisterPlayer(sfxId)
-  session.sfx = session.sfx.filter((s) => s.id !== sfxId)
+  scene.sfx = scene.sfx.filter((s) => s.id !== sfxId)
 }
 
 // ---------------------------------------------------------------------------
@@ -341,8 +402,8 @@ export async function importSession(file: File) {
   stopAll(true)
   for (const id of [...players.keys()]) unregisterPlayer(id)
   session.scenes = data.scenes
-  session.sfx = data.sfx
   session.master = data.master
   runtime.activeSceneId = null
+  runtime.battle = false
   runtime.viewSceneId = session.scenes[0]?.id ?? null
 }

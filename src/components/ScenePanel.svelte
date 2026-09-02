@@ -1,15 +1,16 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene, addTrack } from '../lib/state.svelte'
-  import TrackCard from './TrackCard.svelte'
-  import AddMediaForm from './AddMediaForm.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene } from '../lib/state.svelte'
+  import TrackSection from './TrackSection.svelte'
+  import SfxSection from './SfxSection.svelte'
 
   let { scene }: { scene: Scene } = $props()
 
   const active = $derived(runtime.activeSceneId === scene.id)
 
   function remove() {
-    if (scene.tracks.length === 0 || confirm(`Apagar a cena "${scene.name}" e as suas ${scene.tracks.length} tracks?`)) {
+    const n = scene.tracks.length + scene.sfx.length
+    if (n === 0 || confirm(`Apagar a cena "${scene.name}" e os seus ${n} sons?`)) {
       removeScene(scene.id)
     }
   }
@@ -25,22 +26,17 @@
     </div>
   </div>
 
-  {#if scene.tracks.length === 0}
-    <p class="muted">Sem tracks. Cola um link do YouTube em baixo.</p>
-  {/if}
-
-  <div class="grid">
-    {#each scene.tracks as track (track.id)}
-      <TrackCard {track} sceneId={scene.id} />
-    {/each}
+  <div class="sections">
+    <TrackSection {scene} group="ambience" />
+    <TrackSection {scene} group="music" />
+    <TrackSection {scene} group="battle" />
+    <SfxSection {scene} />
   </div>
-
-  <AddMediaForm label="Adicionar track" allowPlaylist onadd={(ytId, kind, title) => addTrack(scene.id, ytId, kind, title)} />
 </section>
 
 <style>
   .scene {
-    padding: 1rem 1.2rem;
+    padding: 1rem 1.2rem 2rem;
   }
   .head {
     margin-bottom: 1rem;
@@ -60,8 +56,8 @@
   .delete {
     margin-left: auto;
   }
-  .grid {
+  .sections {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.8rem;
   }
 </style>

@@ -1,18 +1,24 @@
 <script lang="ts">
-  import { session, runtime, playSfx, addSfx, removeSfx, applySfxVolume } from '../lib/state.svelte'
+  import type { Scene } from '../lib/types'
+  import { runtime, playSfx, addSfx, removeSfx, applySfxVolume } from '../lib/state.svelte'
   import { SFX_KEYS } from '../lib/hotkeys'
   import PlayerHost from './PlayerHost.svelte'
   import AddMediaForm from './AddMediaForm.svelte'
+
+  let { scene }: { scene: Scene } = $props()
 </script>
 
 <section class="sfx">
-  <h2>Efeitos</h2>
-  {#if session.sfx.length === 0}
-    <p class="muted">Sons curtos disparados por botão ou tecla: trovão, porta, moedas...</p>
+  <header class="row head">
+    <h3>Efeitos</h3>
+    <span class="muted hint">sons curtos, por botão ou tecla, sem loop</span>
+  </header>
+  {#if scene.sfx.length === 0}
+    <p class="muted empty">Trovão, porta, moedas... Disparam de imediato, mesmo com a cena parada.</p>
   {/if}
 
   <div class="grid">
-    {#each session.sfx as sfx, i (sfx.id)}
+    {#each scene.sfx as sfx, i (sfx.id)}
       {@const status = runtime.status[sfx.id] ?? 'idle'}
       <div class="card" class:playing={status === 'playing'}>
         <PlayerHost id={sfx.id} options={{ ytId: sfx.ytId, kind: 'video', loop: false, shuffle: false, volume: sfx.volume }} />
@@ -26,7 +32,7 @@
           {/if}
           <div class="row">
             <input class="name" type="text" bind:value={sfx.title} placeholder="Nome" />
-            <button class="icon danger" title="Remover efeito" onclick={() => removeSfx(sfx.id)}>✕</button>
+            <button class="icon danger" title="Remover efeito" onclick={() => removeSfx(scene.id, sfx.id)}>✕</button>
           </div>
           <label class="vol">
             <span class="muted">Vol</span>
@@ -38,18 +44,30 @@
     {/each}
   </div>
 
-  <AddMediaForm label="Adicionar efeito" onadd={(ytId, _kind, title) => addSfx(ytId, title)} />
+  <AddMediaForm label="Adicionar" onadd={(ytId, _kind, title) => addSfx(scene.id, ytId, title)} />
 </section>
 
 <style>
   .sfx {
-    padding: 1rem 1.2rem 2rem;
-    border-top: 1px solid var(--line);
-    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--bg-2) 60%, transparent);
   }
-  h2 {
-    font-size: 1.1rem;
-    margin: 0 0 0.6rem;
+  .head {
+    margin-bottom: 0.6rem;
+  }
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    min-width: 6rem;
+  }
+  .hint {
+    font-size: 0.85rem;
+  }
+  .empty {
+    margin: 0;
+    font-size: 0.9rem;
   }
   .grid {
     display: grid;
@@ -99,5 +117,8 @@
     width: 2.2em;
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+  .sfx :global(form.add) {
+    margin-top: 0.6rem;
   }
 </style>

@@ -4,7 +4,6 @@
   import Header from './components/Header.svelte'
   import SceneTabs from './components/SceneTabs.svelte'
   import ScenePanel from './components/ScenePanel.svelte'
-  import SfxBoard from './components/SfxBoard.svelte'
 
   // Panels keep a fixed DOM order whatever the tab order. Only one is
   // visible at a time, and moving a panel would move its YouTube iframes,
@@ -26,9 +25,11 @@
       e.preventDefault()
       return
     }
+    // Effect keys follow the scene on screen, where their labels are.
     const sfxIndex = SFX_KEYS.indexOf(key)
-    if (sfxIndex >= 0 && session.sfx[sfxIndex]) {
-      playSfx(session.sfx[sfxIndex])
+    const viewed = session.scenes.find((s) => s.id === runtime.viewSceneId)
+    if (sfxIndex >= 0 && viewed?.sfx[sfxIndex]) {
+      playSfx(viewed.sfx[sfxIndex])
       e.preventDefault()
     }
   }
@@ -50,8 +51,6 @@
     <p class="empty muted">Sem cenas. Cria uma com o botão "+ Cena".</p>
   {/if}
 </main>
-
-<SfxBoard />
 
 <style>
   .empty {
