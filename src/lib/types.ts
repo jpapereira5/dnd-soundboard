@@ -34,6 +34,8 @@ export interface Session {
   master: number
   /** fade used when switching scenes */
   crossfadeMs: number
+  /** collapse the video area of every player, audio keeps playing */
+  hideVideo: boolean
 }
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'fading' | 'error'

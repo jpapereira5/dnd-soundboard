@@ -12,6 +12,7 @@ function defaultSession(): Session {
     sfx: [],
     master: 80,
     crossfadeMs: 3000,
+    hideVideo: false,
   }
 }
 
@@ -54,6 +55,7 @@ function normalize(data: unknown): Session {
     })),
     master: clamp(d.master ?? 80),
     crossfadeMs: d.crossfadeMs ?? 3000,
+    hideVideo: d.hideVideo ?? false,
   }
 }
 
@@ -94,6 +96,9 @@ $effect.root(() => {
 
 const players = new Map<string, TrackPlayer>()
 
+/** Tracks asked to play before their player existed: id -> fade ms. */
+const pendingPlays = new Map<string, number>()
+
 export interface RegisterOptions {
   ytId: string
   kind: Kind
@@ -103,6 +108,8 @@ export interface RegisterOptions {
 }
 
 export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOptions) {
+  // Read before unregisterPlayer, which clears the pending entry.
+  const pendingFade = pendingPlays.get(id)
   unregisterPlayer(id)
   const player = new TrackPlayer(host, {
     ytId: opts.ytId,
@@ -125,11 +132,13 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
     },
   })
   players.set(id, player)
+  if (pendingFade !== undefined) player.play(pendingFade)
 }
 
 export function unregisterPlayer(id: string) {
   players.get(id)?.destroy()
   players.delete(id)
+  pendingPlays.delete(id)
   delete runtime.status[id]
   delete runtime.titles[id]
   delete runtime.errors[id]
@@ -178,15 +187,18 @@ export function activateScene(sceneId: string) {
     if (wanted.has(id)) continue
     if (player.active && !session.sfx.some((s) => s.id === id)) player.stop(fade)
   }
+  pendingPlays.clear()
   for (const track of scene.tracks) {
     const player = players.get(track.id)
-    if (player && !player.active) player.play(fade)
+    if (!player) pendingPlays.set(track.id, fade)
+    else if (!player.active) player.play(fade)
   }
 }
 
 /** Fade every ambient track out. SFX are cut immediately. */
 export function stopAll(fadeMs = session.crossfadeMs) {
   runtime.activeSceneId = null
+  pendingPlays.clear()
   const sfxIds = new Set(session.sfx.map((s) => s.id))
   for (const [id, player] of players) player.stop(sfxIds.has(id) ? 0 : fadeMs)
 }
@@ -313,6 +325,7 @@ export async function importSession(file: File) {
   session.sfx = data.sfx
   session.master = data.master
   session.crossfadeMs = data.crossfadeMs
+  session.hideVideo = data.hideVideo
   runtime.armed = []
   runtime.activeSceneId = null
   runtime.viewSceneId = session.scenes[0]?.id ?? null

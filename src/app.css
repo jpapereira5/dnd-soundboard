@@ -125,7 +125,9 @@ kbd {
   overflow: hidden;
 }
 
-/* The YouTube ToS asks for a visible player of at least 200x200. */
+/* The YouTube ToS asks for a visible player of at least 200x200.
+   With hideVideo on, the iframe is kept in the DOM at zero height so
+   playback continues, but nothing is shown. Opt-in, off by default. */
 .player-host {
   position: relative;
   width: 100%;
@@ -171,6 +173,16 @@ kbd {
 
 .status-dot.error {
   background: var(--danger);
+}
+
+body.hide-video .player-host {
+  height: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+body.hide-video .player-host .placeholder {
+  display: none;
 }
 
 @keyframes pulse {
