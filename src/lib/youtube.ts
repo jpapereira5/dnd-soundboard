@@ -1,4 +1,4 @@
-import type { Kind, PlayerStatus } from './types'
+import { FADE_MS, type Kind, type PlayerStatus } from './types'
 
 declare global {
   interface Window {
@@ -41,7 +41,7 @@ export interface TrackPlayerOptions {
 
 const FADE_STEP_MS = 40
 /** Overlap between the end of a looping video and its restart. */
-const LOOP_CROSSFADE_MS = 4000
+const LOOP_CROSSFADE_MS = FADE_MS
 const LOOP_POLL_MS = 250
 
 const ERROR_MESSAGES: Record<number, string> = {

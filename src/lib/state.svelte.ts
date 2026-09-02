@@ -1,6 +1,6 @@
 import { untrack } from 'svelte'
 import type { Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
-import { uid } from './types'
+import { FADE_MS, uid } from './types'
 import { TrackPlayer } from './youtube'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
@@ -8,7 +8,7 @@ const STORAGE_KEY = 'dnd-soundboard-v1'
 function defaultSession(): Session {
   return {
     version: 1,
-    scenes: [{ id: uid(), name: 'Taberna', fadeMs: 3000, tracks: [] }],
+    scenes: [{ id: uid(), name: 'Taberna', tracks: [] }],
     sfx: [],
     master: 80,
   }
@@ -26,7 +26,7 @@ function load(): Session {
 
 /** Fills in missing fields so older or hand-edited files still load. */
 function normalize(data: unknown): Session {
-  const d = (data ?? {}) as Partial<Session> & { crossfadeMs?: number }
+  const d = (data ?? {}) as Partial<Session>
   const scenes = Array.isArray(d.scenes) ? d.scenes : []
   const sfx = Array.isArray(d.sfx) ? d.sfx : []
   return {
@@ -34,8 +34,6 @@ function normalize(data: unknown): Session {
     scenes: scenes.map((s) => ({
       id: s.id ?? uid(),
       name: s.name ?? 'Cena',
-      // Older files had a global crossfade instead of a per-scene fade.
-      fadeMs: s.fadeMs ?? d.crossfadeMs ?? 3000,
       tracks: (Array.isArray(s.tracks) ? s.tracks : []).map((t) => ({
         id: t.id ?? uid(),
         ytId: t.ytId,
@@ -152,9 +150,9 @@ function findSceneOfTrack(id: string): Scene | undefined {
   return session.scenes.find((s) => s.tracks.some((t) => t.id === id))
 }
 
-/** Fade time that applies to a track: its scene's. SFX are cut instantly. */
+/** Scene tracks fade over FADE_MS; SFX are cut instantly. */
 function fadeFor(id: string): number {
-  return findSceneOfTrack(id)?.fadeMs ?? 0
+  return findSceneOfTrack(id) ? FADE_MS : 0
 }
 
 // ---------------------------------------------------------------------------
@@ -175,10 +173,7 @@ export function viewScene(sceneId: string) {
   armScene(sceneId)
 }
 
-/**
- * Fade the scene in. Whatever else is playing fades out with its own
- * scene's fade time, so switching scenes is a crossfade.
- */
+/** Fade the scene in. Whatever else is playing fades out, so switching scenes is a crossfade. */
 export function activateScene(sceneId: string) {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return
@@ -193,8 +188,8 @@ export function activateScene(sceneId: string) {
   pendingPlays.clear()
   for (const track of scene.tracks) {
     const player = players.get(track.id)
-    if (!player) pendingPlays.set(track.id, scene.fadeMs)
-    else if (!player.active) player.play(scene.fadeMs)
+    if (!player) pendingPlays.set(track.id, FADE_MS)
+    else if (!player.active) player.play(FADE_MS)
   }
 }
 
@@ -205,11 +200,11 @@ export function fadeOutScene(sceneId: string) {
   if (runtime.activeSceneId === sceneId) runtime.activeSceneId = null
   for (const track of scene.tracks) {
     pendingPlays.delete(track.id)
-    players.get(track.id)?.stop(scene.fadeMs)
+    players.get(track.id)?.stop(FADE_MS)
   }
 }
 
-/** Fade every ambient track out with its scene's fade. SFX are cut immediately. */
+/** Fade every ambient track out. SFX are cut immediately. */
 export function stopAll(immediate = false) {
   runtime.activeSceneId = null
   pendingPlays.clear()
@@ -253,7 +248,7 @@ export function playSfx(sfx: Sfx) {
 // ---------------------------------------------------------------------------
 
 export function addScene(name = 'Nova cena'): Scene {
-  const scene: Scene = { id: uid(), name, fadeMs: 3000, tracks: [] }
+  const scene: Scene = { id: uid(), name, tracks: [] }
   session.scenes.push(scene)
   viewScene(scene.id)
   // Return the reactive proxy, not the plain object we pushed.

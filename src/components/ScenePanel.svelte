@@ -21,15 +21,6 @@
     <input class="name" type="text" bind:value={scene.name} />
     <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
     <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
-    <label class="fade" title="Tempo de fade in e fade out da cena">
-      <input
-        type="number"
-        min="0"
-        step="1"
-        bind:value={() => Math.round(scene.fadeMs / 1000), (v) => (scene.fadeMs = Math.max(0, Math.round(Number(v) || 0)) * 1000)}
-      />
-      <span class="muted">s</span>
-    </label>
     <span class="grow"></span>
     <button class="icon" title="Mover para a esquerda" onclick={() => moveScene(scene.id, -1)}>←</button>
     <button class="icon" title="Mover para a direita" onclick={() => moveScene(scene.id, 1)}>→</button>
@@ -63,15 +54,6 @@
   }
   .grow {
     flex: 1;
-  }
-  .fade {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .fade input {
-    width: 5.5em;
-    padding: 0.2rem 0.4rem;
   }
   .grid {
     display: grid;

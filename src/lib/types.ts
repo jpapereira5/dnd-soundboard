@@ -14,10 +14,11 @@ export interface Track {
 export interface Scene {
   id: string
   name: string
-  /** fade in/out time for every track in the scene */
-  fadeMs: number
   tracks: Track[]
 }
+
+/** Fade in/out time used everywhere: scenes, tracks and the loop crossfade. */
+export const FADE_MS = 4000
 
 export interface Sfx {
   id: string
