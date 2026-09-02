@@ -16,7 +16,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 - Vídeos monetizados podem mostrar anúncios. YouTube Premium na conta do browser resolve.
 - Os leitores do YouTube ficam na página com altura zero: só há áudio. Os termos do YouTube pedem um leitor visível, decisão assumida pelo autor.
 - O browser só deixa tocar som depois de um clique na página.
-- Loop de um único vídeo tem um pequeno silêncio ao reiniciar. Playlists em loop não têm esse problema.
+- O loop de um vídeo usa dois leitores em crossfade de 4 segundos entre o fim e o início, por isso é contínuo. Entre faixas de uma playlist a transição é a do YouTube, com um pequeno silêncio.
 - Pensado para desktop. Browsers móveis bloqueiam vários leitores em simultâneo.
 
 ## Desenvolvimento

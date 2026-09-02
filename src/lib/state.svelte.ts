@@ -256,7 +256,8 @@ export function addScene(name = 'Nova cena'): Scene {
   const scene: Scene = { id: uid(), name, fadeMs: 3000, tracks: [] }
   session.scenes.push(scene)
   viewScene(scene.id)
-  return scene
+  // Return the reactive proxy, not the plain object we pushed.
+  return session.scenes[session.scenes.length - 1]
 }
 
 export function removeScene(sceneId: string) {

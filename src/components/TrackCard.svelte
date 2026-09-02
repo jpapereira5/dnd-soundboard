@@ -57,15 +57,14 @@
     padding: 0.5rem 0.7rem;
     flex-wrap: nowrap;
     overflow: visible;
-    max-width: 100%;
   }
   .track.playing {
     border-color: var(--accent-2);
     box-shadow: 0 0 0 1px var(--accent-2);
   }
+  /* Title takes all free space, so the controls sit on the right edge. */
   .title {
-    flex: 0 1 36rem;
-    width: 36rem;
+    flex: 1;
     min-width: 12rem;
     background: transparent;
     border-color: transparent;

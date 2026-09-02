@@ -40,19 +40,106 @@ export interface TrackPlayerOptions {
 }
 
 const FADE_STEP_MS = 40
+/** Overlap between the end of a looping video and its restart. */
+const LOOP_CROSSFADE_MS = 4000
+const LOOP_POLL_MS = 250
+
+const ERROR_MESSAGES: Record<number, string> = {
+  2: 'ID inválido',
+  5: 'erro do leitor HTML5',
+  100: 'vídeo não encontrado',
+  101: 'o autor não permite embed',
+  150: 'o autor não permite embed',
+}
 
 /**
- * Wraps one YT.Player. Volume applied = 100 * gain * master * level^2,
- * where `level` (0..1) is the fade envelope. The square makes fades sound
- * linear to the ear, since YouTube's volume scale is amplitude-linear.
+ * One YT.Player plus its own fade envelope (`level`, 0..1).
+ * Volume applied = 100 * gain * master * level^2; the square makes fades
+ * sound linear to the ear, since YouTube's volume scale is amplitude-linear.
+ */
+class Voice {
+  player: YT.Player | null = null
+  ready = false
+  level = 0
+  private fadeTimer: number | null = null
+
+  constructor(private readonly volumeFor: (level: number) => number) {}
+
+  get fading(): boolean {
+    return this.fadeTimer !== null
+  }
+
+  applyVolume() {
+    if (!this.ready || !this.player) return
+    const v = Math.round(this.volumeFor(this.level))
+    this.player.setVolume(Math.max(0, Math.min(100, v)))
+  }
+
+  cancelFade() {
+    if (this.fadeTimer !== null) {
+      clearInterval(this.fadeTimer)
+      this.fadeTimer = null
+    }
+  }
+
+  fadeTo(target: number, ms: number, done?: () => void) {
+    this.cancelFade()
+    if (ms <= 0) {
+      this.level = target
+      this.applyVolume()
+      done?.()
+      return
+    }
+    const from = this.level
+    const start = performance.now()
+    this.fadeTimer = window.setInterval(() => {
+      const t = Math.min(1, (performance.now() - start) / ms)
+      this.level = from + (target - from) * t
+      this.applyVolume()
+      if (t >= 1) {
+        this.cancelFade()
+        done?.()
+      }
+    }, FADE_STEP_MS)
+  }
+
+  /** Silence and pause right away. */
+  cut() {
+    this.cancelFade()
+    this.level = 0
+    this.applyVolume()
+    this.pause()
+  }
+
+  /** YT.Player only grows its methods after onReady, so guard every call. */
+  pause() {
+    if (this.ready) this.player?.pauseVideo()
+  }
+
+  seekToStart() {
+    if (this.ready) this.player?.seekTo(0, true)
+  }
+
+  destroy() {
+    this.cancelFade()
+    this.player?.destroy()
+    this.player = null
+  }
+}
+
+/**
+ * Wraps one track. Looping videos get two voices: while one plays, the
+ * other waits at the start; near the end they crossfade so the loop has
+ * no gap. Playlists and one-shots use a single voice.
  */
 export class TrackPlayer {
-  private player: YT.Player | null = null
+  private voices: Voice[] = []
+  private current = 0
   private ready = false
   private destroyed = false
-  private fadeTimer: number | null = null
   private pendingPlay: number | null = null
-  private level = 0
+  private loopTimer: number | null = null
+  private crossfading = false
   /** true between play() and the end of stop() */
   active = false
   gain: number
@@ -74,11 +161,18 @@ export class TrackPlayer {
     this.onStatus = opts.onStatus
     this.onTitle = opts.onTitle
 
+    const voiceCount = this.kind === 'video' && this.loop ? 2 : 1
+    this.onStatus?.('loading')
+    for (let i = 0; i < voiceCount; i++) this.createVoice(host, i)
+  }
+
+  private createVoice(host: HTMLElement, index: number) {
+    const voice = new Voice((level) => 100 * this.gain * this.master * level * level)
+    this.voices.push(voice)
     // The API replaces the target element with the iframe, so give it a
     // throwaway child rather than a node Svelte owns.
     const target = document.createElement('div')
     host.appendChild(target)
-    this.onStatus?.('loading')
 
     loadYouTubeApi().then((yt) => {
       if (this.destroyed) return
@@ -95,30 +189,37 @@ export class TrackPlayer {
         playerVars.list = this.ytId
         playerVars.loop = this.loop ? 1 : 0
       }
-      // Only set videoId for videos: the API rejects an explicit undefined.
-      this.player = new yt.Player(target, {
+      voice.player = new yt.Player(target, {
         width: '100%',
         height: '100%',
         ...(this.kind === 'video' ? { videoId: this.ytId } : {}),
         playerVars,
         events: {
-          onReady: () => this.handleReady(),
-          onStateChange: (e) => this.handleState(e.data),
+          onReady: () => this.handleReady(index),
+          onStateChange: (e) => this.handleState(index, e.data),
           onError: (e) => this.handleError(e.data),
         },
       })
     })
   }
 
-  private handleReady() {
-    if (this.destroyed || !this.player) return
+  private get voice(): Voice {
+    return this.voices[this.current]
+  }
+
+  private handleReady(index: number) {
+    if (this.destroyed) return
+    const voice = this.voices[index]
+    voice.ready = true
+    voice.applyVolume()
+    if (index !== 0) return
+
     this.ready = true
-    this.applyVolume()
-    if (this.kind === 'playlist') {
-      this.player.setLoop(this.loop)
-      this.player.setShuffle(this.shuffle)
+    if (this.kind === 'playlist' && voice.player) {
+      voice.player.setLoop(this.loop)
+      voice.player.setShuffle(this.shuffle)
     }
-    this.emitTitle()
+    this.emitTitle(voice)
     if (this.pendingPlay !== null) {
       const fade = this.pendingPlay
       this.pendingPlay = null
@@ -128,155 +229,182 @@ export class TrackPlayer {
     }
   }
 
-  private handleState(state: YT.PlayerState) {
-    if (this.destroyed || !this.player) return
+  private handleState(index: number, state: YT.PlayerState) {
+    if (this.destroyed) return
+    const voice = this.voices[index]
     const S = YT.PlayerState
     if (state === S.PLAYING) {
-      this.emitTitle()
-      if (this.active) this.onStatus?.(this.fadeTimer ? 'fading' : 'playing')
+      this.emitTitle(voice)
+      if (index === this.current && this.active) this.onStatus?.(voice.fading ? 'fading' : 'playing')
     } else if (state === S.ENDED) {
-      if (this.active && this.loop && this.kind === 'video') {
-        this.player.seekTo(0, true)
-        this.player.playVideo()
+      if (index !== this.current) {
+        voice.pause()
+        return
+      }
+      if (this.active && this.loop && this.kind === 'video' && voice.player) {
+        // Fallback for when the crossfade could not start (duration unknown,
+        // second voice not ready). Restarts with a small gap.
+        voice.player.seekTo(0, true)
+        voice.player.playVideo()
       } else if (this.active) {
         // Playlist loops are handled by YouTube itself, so ENDED here means "really over".
         this.active = false
+        this.stopLoopWatch()
         this.onStatus?.('idle')
       }
     }
   }
 
   private handleError(code: number) {
-    const messages: Record<number, string> = {
-      2: 'ID inválido',
-      5: 'erro do leitor HTML5',
-      100: 'vídeo não encontrado',
-      101: 'o autor não permite embed',
-      150: 'o autor não permite embed',
-    }
     this.active = false
-    this.onStatus?.('error', messages[code] ?? `erro ${code}`)
+    this.stopLoopWatch()
+    this.onStatus?.('error', ERROR_MESSAGES[code] ?? `erro ${code}`)
   }
 
-  private emitTitle() {
-    const data = (this.player as unknown as { getVideoData?: () => { title?: string } }).getVideoData?.()
+  private emitTitle(voice: Voice) {
+    const data = (voice.player as unknown as { getVideoData?: () => { title?: string } } | null)?.getVideoData?.()
     if (data?.title) this.onTitle?.(data.title)
   }
 
-  private applyVolume() {
-    if (!this.ready || !this.player) return
-    const v = Math.round(100 * this.gain * this.master * this.level * this.level)
-    this.player.setVolume(Math.max(0, Math.min(100, v)))
+  // ---------------------------------------------------------------------
+  // Gapless loop
+  // ---------------------------------------------------------------------
+
+  private startLoopWatch() {
+    if (this.voices.length < 2 || this.loopTimer !== null) return
+    this.loopTimer = window.setInterval(() => this.checkLoop(), LOOP_POLL_MS)
   }
 
-  private cancelFade() {
-    if (this.fadeTimer !== null) {
-      clearInterval(this.fadeTimer)
-      this.fadeTimer = null
+  private stopLoopWatch() {
+    if (this.loopTimer !== null) {
+      clearInterval(this.loopTimer)
+      this.loopTimer = null
     }
+    this.crossfading = false
   }
 
-  private fadeTo(target: number, ms: number, done?: () => void) {
-    this.cancelFade()
-    if (ms <= 0) {
-      this.level = target
-      this.applyVolume()
-      done?.()
-      return
-    }
-    const from = this.level
-    const start = performance.now()
-    this.fadeTimer = window.setInterval(() => {
-      const t = Math.min(1, (performance.now() - start) / ms)
-      this.level = from + (target - from) * t
-      this.applyVolume()
-      if (t >= 1) {
-        this.cancelFade()
-        done?.()
-      }
-    }, FADE_STEP_MS)
+  private checkLoop() {
+    if (!this.active || this.crossfading) return
+    const player = this.voice.player
+    if (!this.voice.ready || !player) return
+    const duration = player.getDuration()
+    if (!duration || duration <= 0) return
+    const overlap = Math.min(LOOP_CROSSFADE_MS, (duration * 1000) / 3)
+    const remaining = (duration - player.getCurrentTime()) * 1000
+    if (remaining <= overlap) this.loopCrossfade(overlap)
   }
+
+  private loopCrossfade(ms: number) {
+    const outgoing = this.voice
+    const incoming = this.voices[1 - this.current]
+    if (!incoming.ready || !incoming.player || !outgoing.player) return
+    this.crossfading = true
+    incoming.level = 0
+    incoming.applyVolume()
+    incoming.player.seekTo(0, true)
+    incoming.player.playVideo()
+    incoming.fadeTo(1, ms)
+    outgoing.fadeTo(0, ms, () => {
+      outgoing.pause()
+      outgoing.seekToStart()
+      this.crossfading = false
+    })
+    this.current = 1 - this.current
+  }
+
+  // ---------------------------------------------------------------------
+  // Public control
+  // ---------------------------------------------------------------------
 
   play(fadeMs: number) {
     if (this.destroyed) return
-    if (!this.ready || !this.player) {
+    const voice = this.voice
+    if (!this.ready || !voice.player) {
       this.pendingPlay = fadeMs
       this.onStatus?.('loading')
       return
     }
     this.active = true
-    if (this.fadeTimer === null && this.level > 0) {
-      // Already playing at full level, nothing to do.
-      this.player.playVideo()
+    for (const other of this.voices) if (other !== voice) other.cut()
+    this.startLoopWatch()
+    if (!voice.fading && voice.level > 0) {
+      voice.player.playVideo()
       this.onStatus?.('playing')
       return
     }
     this.onStatus?.('fading')
-    this.applyVolume()
-    this.player.playVideo()
-    this.fadeTo(1, fadeMs, () => this.onStatus?.('playing'))
+    voice.applyVolume()
+    voice.player.playVideo()
+    voice.fadeTo(1, fadeMs, () => this.onStatus?.('playing'))
   }
 
   /** One-shot from the start, no fade in. Used by SFX. */
   playOnce() {
     if (this.destroyed) return
-    if (!this.ready || !this.player) {
+    const voice = this.voices[0]
+    if (!this.ready || !voice.player) {
       this.pendingPlay = 0
       return
     }
-    this.cancelFade()
+    voice.cancelFade()
     this.active = true
-    this.level = 1
-    this.applyVolume()
-    this.player.seekTo(0, true)
-    this.player.playVideo()
+    voice.level = 1
+    voice.applyVolume()
+    voice.player.seekTo(0, true)
+    voice.player.playVideo()
     this.onStatus?.('playing')
   }
 
   stop(fadeMs: number) {
     if (this.destroyed) return
     this.pendingPlay = null
-    if (!this.ready || !this.player || !this.active) {
+    this.stopLoopWatch()
+    if (!this.ready || !this.active) {
       this.active = false
       this.onStatus?.('idle')
       return
     }
     this.onStatus?.('fading')
-    this.fadeTo(0, fadeMs, () => {
+    const current = this.voice
+    for (const voice of this.voices) {
+      if (voice === current) continue
+      if (voice.level > 0 || voice.fading) voice.fadeTo(0, fadeMs, () => voice.pause())
+    }
+    current.fadeTo(0, fadeMs, () => {
       this.active = false
-      this.player?.pauseVideo()
+      current.pause()
       this.onStatus?.('idle')
     })
   }
 
   setGain(gain: number) {
     this.gain = gain
-    this.applyVolume()
+    for (const voice of this.voices) voice.applyVolume()
   }
 
   setMaster(master: number) {
     this.master = master
-    this.applyVolume()
+    for (const voice of this.voices) voice.applyVolume()
   }
 
   setLoop(loop: boolean) {
     this.loop = loop
-    if (this.kind === 'playlist' && this.ready) this.player?.setLoop(loop)
+    if (this.kind === 'playlist' && this.ready) this.voices[0].player?.setLoop(loop)
   }
 
   setShuffle(shuffle: boolean) {
     this.shuffle = shuffle
-    if (this.kind === 'playlist' && this.ready) this.player?.setShuffle(shuffle)
+    if (this.kind === 'playlist' && this.ready) this.voices[0].player?.setShuffle(shuffle)
   }
 
   nextInPlaylist() {
-    if (this.kind === 'playlist' && this.ready) this.player?.nextVideo()
+    if (this.kind === 'playlist' && this.ready) this.voices[0].player?.nextVideo()
   }
 
   destroy() {
     this.destroyed = true
-    this.cancelFade()
-    this.player?.destroy()
-    this.player = null
+    this.stopLoopWatch()
+    for (const voice of this.voices) voice.destroy()
+    this.voices = []
   }
 }
