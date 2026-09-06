@@ -295,6 +295,8 @@ export class TrackPlayer {
   private host: HTMLElement
   /** Automatic reloads after a transient player error (code 5). */
   private reloads = 0
+  /** Playlist items skipped in a row because they cannot be embedded or are gone. */
+  private skips = 0
   private reloadTimer: number | null = null
   private onStatus?: TrackPlayerOptions['onStatus']
   private onTitle?: TrackPlayerOptions['onTitle']
@@ -414,6 +416,7 @@ export class TrackPlayer {
     const voice = this.voices[index]
     const S = YT.PlayerState
     if (state === S.PLAYING) {
+      this.skips = 0
       if (voice.handlePlaying()) {
         // Priming done: the track is armed and can start without delay.
         if (index === this.current && !this.active) this.onStatus?.('idle')
@@ -446,6 +449,15 @@ export class TrackPlayer {
   }
 
   private handleError(code: number) {
+    // In a playlist, 100/101/150 concern the current item only: the owner
+    // of that one video blocked embedding or removed it. YouTube stops on
+    // it instead of moving on, so skip ahead ourselves. The cap guards
+    // against a list where every item is blocked.
+    if (this.kind === 'playlist' && (code === 100 || code === 101 || code === 150) && this.skips < 10) {
+      this.skips += 1
+      this.voices[0].player?.nextVideo()
+      return
+    }
     this.active = false
     this.stopLoopWatch()
     this.onStatus?.('error', ERROR_MESSAGES[code] ?? `erro ${code}`)
