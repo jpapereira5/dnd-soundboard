@@ -18,7 +18,7 @@
 
 <div class="players">
   {#each all as p (p.id)}
-    <PlayerHost id={p.id} options={p.options} />
+    <PlayerHost id={p.id} ytId={p.options.ytId} kind={p.options.kind} options={p.options} />
   {/each}
 </div>
 

@@ -51,6 +51,8 @@ export interface Session {
   master: number
   /** 0..100, applied on top of master to ambience tracks only. */
   ambienceMaster: number
+  /** Time of the last local change (ms). Newest copy wins when syncing. */
+  savedAt: number
 }
 
 /** 'fading' is a fade in; 'stopping' a fade out. */

@@ -2,6 +2,7 @@ import { untrack } from 'svelte'
 import type { Group, Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
 import { FADE_MS, GROUPS, uid } from './types'
 import { TrackPlayer, setPrimePriority } from './youtube'
+import { fetchRemote, pushRemote, getToken, setToken, SyncError } from './sync'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
 
@@ -11,6 +12,7 @@ function defaultSession(): Session {
     scenes: [{ id: uid(), name: 'Taberna', tracks: [], sfx: [] }],
     master: 80,
     ambienceMaster: 100,
+    savedAt: 0,
   }
 }
 
@@ -64,7 +66,13 @@ function normalize(data: unknown): Session {
     if (!scenes.length) scenes.push({ id: uid(), name: 'Cena', tracks: [], sfx: [] })
     scenes[0].sfx.push(...legacySfx)
   }
-  return { version: 2, scenes, master: clamp(d.master ?? 80), ambienceMaster: clamp(d.ambienceMaster ?? 100) }
+  return {
+    version: 2,
+    scenes,
+    master: clamp(d.master ?? 80),
+    ambienceMaster: clamp(d.ambienceMaster ?? 100),
+    savedAt: Number(d.savedAt) || 0,
+  }
 }
 
 function clamp(v: number): number {
@@ -100,10 +108,35 @@ export const runtime = $state({
   errors: {} as Record<string, string>,
   titles: {} as Record<string, string>,
   showHelp: false,
+  showSync: false,
+  /** Cloud copy on the GitHub data branch. */
+  sync: {
+    status: 'off' as 'off' | 'readonly' | 'pulling' | 'saving' | 'saved' | 'error',
+    message: '',
+    /** Last successful save, ms. */
+    at: 0,
+    hasToken: !!getToken(),
+  },
 })
 
+/** JSON of the session without savedAt: what counts as a real change. */
+function contentOf(s: Session): string {
+  const { savedAt: _ignored, ...rest } = s
+  return JSON.stringify(rest)
+}
+
+let lastContent = contentOf(session)
+/** true while a remote copy is being applied, so it is not stamped as a local edit. */
+let applyingRemote = false
+
 function persist() {
+  const content = contentOf(session)
+  if (content !== lastContent) {
+    lastContent = content
+    if (!applyingRemote) untrack(() => (session.savedAt = Date.now()))
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+  scheduleSync()
 }
 
 // Write the normalized session once now (so an old-format file is migrated on
@@ -487,14 +520,132 @@ export function exportSession() {
   URL.revokeObjectURL(url)
 }
 
-export async function importSession(file: File) {
-  const data = normalize(JSON.parse(await file.text()))
-  stopAll(true)
-  for (const id of [...players.keys()]) unregisterPlayer(id)
+/**
+ * Replaces the session in place. Players whose track keeps its id and video
+ * survive (PlayerHost recreates the others), so a cloud copy can be applied
+ * while something plays.
+ */
+function applySession(data: Session) {
   session.scenes = data.scenes
   session.master = data.master
   session.ambienceMaster = data.ambienceMaster
-  runtime.activeSceneId = null
-  runtime.battle = false
-  runtime.viewSceneId = session.scenes[0]?.id ?? null
+  session.savedAt = data.savedAt
+  for (const scene of session.scenes) {
+    for (const t of scene.tracks) applyTrackSettings(t)
+    for (const s of scene.sfx) applySfxVolume(s)
+  }
+  applyMasters()
+  if (runtime.activeSceneId && !session.scenes.some((s) => s.id === runtime.activeSceneId)) {
+    runtime.activeSceneId = null
+    runtime.battle = false
+  }
+  if (!runtime.viewSceneId || !session.scenes.some((s) => s.id === runtime.viewSceneId)) {
+    runtime.viewSceneId = session.scenes[0]?.id ?? null
+  }
 }
+
+export async function importSession(file: File) {
+  const data = normalize(JSON.parse(await file.text()))
+  stopAll(true)
+  data.savedAt = Date.now()
+  applySession(data)
+}
+
+// ---------------------------------------------------------------------------
+// Cloud sync (see sync.ts). Newest copy wins, by savedAt.
+// ---------------------------------------------------------------------------
+
+const SYNC_DEBOUNCE_MS = 2500
+let remoteSha: string | null = null
+let pulledOnce = false
+let lastPushed = ''
+let syncTimer: number | null = null
+
+function setSync(status: typeof runtime.sync.status, message = '') {
+  runtime.sync.status = status
+  runtime.sync.message = message
+}
+
+/** Reads the cloud copy and applies it when newer than what is here. */
+async function pull(): Promise<void> {
+  if (!navigator.onLine) return
+  setSync('pulling')
+  try {
+    const remote = await fetchRemote()
+    remoteSha = remote.sha
+    const d = remote.data as Partial<Session> | null
+    if (d && Array.isArray(d.scenes)) {
+      const data = normalize(d)
+      if (data.savedAt > session.savedAt) {
+        applyingRemote = true
+        try {
+          applySession(data)
+        } finally {
+          applyingRemote = false
+        }
+        lastPushed = JSON.stringify(session)
+      } else if (data.savedAt === session.savedAt) {
+        lastPushed = JSON.stringify(session)
+      }
+    }
+    pulledOnce = true
+    setSync(getToken() ? (runtime.sync.at ? 'saved' : 'off') : 'readonly')
+    scheduleSync()
+  } catch (e) {
+    pulledOnce = true
+    setSync('error', `leitura: ${e instanceof Error ? e.message : e}`)
+  }
+}
+
+function scheduleSync() {
+  if (!getToken() || !pulledOnce || applyingRemote) return
+  if (syncTimer !== null) clearTimeout(syncTimer)
+  syncTimer = window.setTimeout(push, SYNC_DEBOUNCE_MS)
+}
+
+async function push(retry = true): Promise<void> {
+  syncTimer = null
+  if (!getToken()) return
+  const content = JSON.stringify(session)
+  if (content === lastPushed) return
+  setSync('saving')
+  try {
+    remoteSha = await pushRemote(session, remoteSha)
+    lastPushed = content
+    runtime.sync.at = Date.now()
+    setSync('saved')
+  } catch (e) {
+    // Someone else wrote first: take their sha (and their copy if newer), then try once more.
+    if (retry && e instanceof SyncError && (e.status === 409 || e.status === 422)) {
+      await pull()
+      return push(false)
+    }
+    setSync('error', `escrita: ${e instanceof Error ? e.message : e}`)
+  }
+}
+
+/** Header panel: store the token for this computer and sync right away. */
+export function saveToken(token: string) {
+  setToken(token.trim())
+  runtime.sync.hasToken = !!getToken()
+  lastPushed = ''
+  syncNow()
+}
+
+export function clearToken() {
+  setToken('')
+  runtime.sync.hasToken = false
+  runtime.sync.at = 0
+  setSync('readonly')
+}
+
+export async function syncNow() {
+  await pull()
+  if (getToken()) await push()
+}
+
+// First read on startup, then whenever the tab comes back into view.
+pull()
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') pull()
+})

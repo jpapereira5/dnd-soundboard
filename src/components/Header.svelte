@@ -1,7 +1,28 @@
 <script lang="ts">
-  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession } from '../lib/state.svelte'
+  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, saveToken, clearToken, syncNow } from '../lib/state.svelte'
+  import { SYNC_HELP_URL } from '../lib/sync'
 
   let fileInput = $state<HTMLInputElement>()
+  let tokenInput = $state('')
+
+  const syncLabel = $derived.by(() => {
+    const s = runtime.sync
+    const time = s.at ? new Date(s.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''
+    switch (s.status) {
+      case 'pulling':
+        return 'Nuvem: a ler…'
+      case 'saving':
+        return 'Nuvem: a guardar…'
+      case 'saved':
+        return `Nuvem ✓ ${time}`
+      case 'error':
+        return 'Nuvem: erro'
+      case 'readonly':
+        return 'Nuvem: só leitura'
+      default:
+        return 'Nuvem'
+    }
+  })
 
   async function onImport(e: Event) {
     const input = e.currentTarget as HTMLInputElement
@@ -35,11 +56,43 @@
 
   <span class="grow"></span>
 
+  <button class:primary={runtime.showSync} class:danger={runtime.sync.status === 'error'} title="Guardar a sessão na nuvem" onclick={() => (runtime.showSync = !runtime.showSync)}>
+    {syncLabel}
+  </button>
   <button onclick={exportSession}>Exportar</button>
   <button onclick={() => fileInput?.click()}>Importar</button>
   <input type="file" accept="application/json" hidden bind:this={fileInput} onchange={onImport} />
   <button class:primary={runtime.showHelp} onclick={() => (runtime.showHelp = !runtime.showHelp)}>?</button>
 </header>
+
+{#if runtime.showSync}
+  <aside class="help sync">
+    <p>
+      A sessão fica guardada no GitHub, no ficheiro <code>session.json</code> do ramo <code>data</code> deste repositório. Qualquer computador que abra
+      esta página lê essa cópia. Para este computador também <strong>escrever</strong> as alterações, cola aqui um token do GitHub. A cópia mais recente
+      ganha.
+    </p>
+    {#if runtime.sync.hasToken}
+      <p class="row">
+        <span>Este computador guarda na nuvem.</span>
+        <button onclick={syncNow}>Sincronizar agora</button>
+        <button class="danger" onclick={clearToken}>Remover token</button>
+      </p>
+    {:else}
+      <form class="row" onsubmit={(e) => { e.preventDefault(); saveToken(tokenInput); tokenInput = '' }}>
+        <input class="token" type="password" bind:value={tokenInput} placeholder="github_pat_…" autocomplete="off" />
+        <button type="submit" class="primary" disabled={!tokenInput.trim()}>Guardar token</button>
+      </form>
+      <p class="muted small">
+        Cria o token em <a href={SYNC_HELP_URL} target="_blank" rel="noreferrer">github.com → Settings → Developer settings → Fine-grained tokens</a>:
+        Repository access "Only select repositories" → dnd-soundboard; Permissions → Contents: Read and write. O token fica só neste browser.
+      </p>
+    {/if}
+    {#if runtime.sync.message}
+      <p class="error">{runtime.sync.message}</p>
+    {/if}
+  </aside>
+{/if}
 
 {#if runtime.showHelp}
   <aside class="help">
@@ -52,7 +105,7 @@
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>Todas as tracks carregam ao abrir a página e ficam pré-carregadas em silêncio, prontas a arrancar sem atraso.</li>
       <li>Círculo à esquerda de cada track: laranja intermitente a carregar, laranja fixo armada, pronta ou em fade out, verde a tocar ou em fade in, vermelho erro.</li>
-      <li>Tudo fica guardado neste browser. Usa Exportar para levar a sessão para outro computador.</li>
+      <li>Tudo fica guardado neste browser e, com um token no botão Nuvem, também no GitHub, para abrires noutro computador. Exportar e Importar continuam a funcionar.</li>
     </ul>
   </aside>
 {/if}
@@ -95,5 +148,22 @@
   .help ul {
     margin: 0.3rem 0;
     padding-left: 1.2rem;
+  }
+  .sync p {
+    margin: 0.4rem 0;
+  }
+  .sync .token {
+    flex: 1 1 22rem;
+  }
+  .small {
+    font-size: 0.85rem;
+  }
+  .error {
+    color: #ffb3ad;
+  }
+  code {
+    background: var(--bg);
+    padding: 0 0.3em;
+    border-radius: 4px;
   }
 </style>

@@ -9,6 +9,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 - **Tracks**: vídeo ou playlist do YouTube, sempre em loop. Volume independente, shuffle em playlists.
 - **Atalhos**: `1`–`9` ativam cenas, `Q`–`P`, `A`–`L`, `Z`–`M` disparam os efeitos da cena no ecrã, `Esc` faz fade out a tudo.
 - **Persistência** em `localStorage`, com exportação e importação em JSON.
+- **Nuvem**: a sessão é lida de `session.json` no ramo `data` deste repositório ao abrir a página. Com um token fine-grained do GitHub (só este repositório, Contents: read and write) colado no botão "Nuvem", cada alteração é gravada lá passados uns segundos. A cópia mais recente ganha.
 
 ## Limitações conhecidas
 
