@@ -2,7 +2,7 @@ import { untrack } from 'svelte'
 import type { Group, Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
 import { FADE_MS, GROUPS, uid } from './types'
 import { TrackPlayer, setPrimePriority } from './youtube'
-import { fetchRemote, pushRemote, getToken, setToken, SyncError } from './sync'
+import { fetchRemote, pushRemote, createRemote, getCloudId, setCloudId, cloudLink, SyncError } from './sync'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
 
@@ -109,13 +109,14 @@ export const runtime = $state({
   titles: {} as Record<string, string>,
   showHelp: false,
   showSync: false,
-  /** Cloud copy on the GitHub data branch. */
+  /** Cloud copy on jsonblob.com, keyed by a secret link. */
   sync: {
-    status: 'off' as 'off' | 'readonly' | 'pulling' | 'saving' | 'saved' | 'error',
+    status: 'off' as 'off' | 'on' | 'pulling' | 'saving' | 'saved' | 'error',
     message: '',
     /** Last successful save, ms. */
     at: 0,
-    hasToken: !!getToken(),
+    /** Link that opens this same copy on another computer; empty when off. */
+    link: '',
   },
 })
 
@@ -556,7 +557,7 @@ export async function importSession(file: File) {
 // ---------------------------------------------------------------------------
 
 const SYNC_DEBOUNCE_MS = 2500
-let remoteSha: string | null = null
+let cloudId = getCloudId()
 let pulledOnce = false
 let lastPushed = ''
 let syncTimer: number | null = null
@@ -568,12 +569,10 @@ function setSync(status: typeof runtime.sync.status, message = '') {
 
 /** Reads the cloud copy and applies it when newer than what is here. */
 async function pull(): Promise<void> {
-  if (!navigator.onLine) return
+  if (!cloudId || !navigator.onLine) return
   setSync('pulling')
   try {
-    const remote = await fetchRemote()
-    remoteSha = remote.sha
-    const d = remote.data as Partial<Session> | null
+    const d = (await fetchRemote(cloudId)) as Partial<Session> | null
     if (d && Array.isArray(d.scenes)) {
       const data = normalize(d)
       if (data.savedAt > session.savedAt) {
@@ -589,62 +588,84 @@ async function pull(): Promise<void> {
       }
     }
     pulledOnce = true
-    setSync(getToken() ? (runtime.sync.at ? 'saved' : 'off') : 'readonly')
+    setSync(runtime.sync.at ? 'saved' : 'on')
     scheduleSync()
   } catch (e) {
     pulledOnce = true
+    if (e instanceof SyncError && e.status === 404) {
+      // The service dropped it. Start a fresh copy from what is here.
+      await recreate()
+      return
+    }
     setSync('error', `leitura: ${e instanceof Error ? e.message : e}`)
   }
 }
 
 function scheduleSync() {
-  if (!getToken() || !pulledOnce || applyingRemote) return
+  if (!cloudId || !pulledOnce || applyingRemote) return
   if (syncTimer !== null) clearTimeout(syncTimer)
   syncTimer = window.setTimeout(push, SYNC_DEBOUNCE_MS)
 }
 
-async function push(retry = true): Promise<void> {
+async function push(): Promise<void> {
   syncTimer = null
-  if (!getToken()) return
+  if (!cloudId) return
   const content = JSON.stringify(session)
   if (content === lastPushed) return
   setSync('saving')
   try {
-    remoteSha = await pushRemote(session, remoteSha)
+    await pushRemote(cloudId, session)
     lastPushed = content
     runtime.sync.at = Date.now()
     setSync('saved')
   } catch (e) {
-    // Someone else wrote first: take their sha (and their copy if newer), then try once more.
-    if (retry && e instanceof SyncError && (e.status === 409 || e.status === 422)) {
-      await pull()
-      return push(false)
+    if (e instanceof SyncError && e.status === 404) {
+      await recreate()
+      return
     }
     setSync('error', `escrita: ${e instanceof Error ? e.message : e}`)
   }
 }
 
-/** Header panel: store the token for this computer and sync right away. */
-export function saveToken(token: string) {
-  setToken(token.trim())
-  runtime.sync.hasToken = !!getToken()
-  lastPushed = ''
-  syncNow()
+async function recreate() {
+  try {
+    cloudId = await createRemote(session)
+    setCloudId(cloudId)
+    runtime.sync.link = cloudLink(cloudId)
+    lastPushed = JSON.stringify(session)
+    runtime.sync.at = Date.now()
+    pulledOnce = true
+    setSync('saved')
+  } catch (e) {
+    setSync('error', `criar cópia: ${e instanceof Error ? e.message : e}`)
+  }
 }
 
-export function clearToken() {
-  setToken('')
-  runtime.sync.hasToken = false
+/** Header panel: make a cloud copy of this session and remember its link. */
+export async function enableCloud() {
+  if (cloudId) return
+  setSync('saving')
+  await recreate()
+}
+
+/** Forget the link on this computer. The copy itself stays for other computers. */
+export function disableCloud() {
+  cloudId = ''
+  setCloudId('')
+  runtime.sync.link = ''
   runtime.sync.at = 0
-  setSync('readonly')
+  lastPushed = ''
+  setSync('off')
 }
 
 export async function syncNow() {
   await pull()
-  if (getToken()) await push()
+  await push()
 }
 
 // First read on startup, then whenever the tab comes back into view.
+runtime.sync.link = cloudId ? cloudLink(cloudId) : ''
+if (cloudId) setSync('on')
 pull()
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') pull()

@@ -9,7 +9,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 - **Tracks**: vídeo ou playlist do YouTube, sempre em loop. Volume independente, shuffle em playlists.
 - **Atalhos**: `1`–`9` ativam cenas, `Q`–`P`, `A`–`L`, `Z`–`M` disparam os efeitos da cena no ecrã, `Esc` faz fade out a tudo.
 - **Persistência** em `localStorage`, com exportação e importação em JSON.
-- **Nuvem**: a sessão é lida de `session.json` no ramo `data` deste repositório ao abrir a página. Com um token fine-grained do GitHub (só este repositório, Contents: read and write) colado no botão "Nuvem", cada alteração é gravada lá passados uns segundos. A cópia mais recente ganha.
+- **Nuvem**: o botão "Nuvem" cria uma cópia da sessão em jsonblob.com, sem conta nem token, e dá um link com o id (`#c=…`). Esse link abre a mesma sessão em qualquer computador e cada alteração é gravada passados uns segundos; a cópia mais recente ganha. Quem tiver o link pode editar. O serviço apaga cópias sem acesso há 30 dias; a app cria então uma nova.
 
 ## Limitações conhecidas
 

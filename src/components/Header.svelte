@@ -1,9 +1,18 @@
 <script lang="ts">
-  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, saveToken, clearToken, syncNow } from '../lib/state.svelte'
-  import { SYNC_HELP_URL } from '../lib/sync'
+  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, enableCloud, disableCloud, syncNow } from '../lib/state.svelte'
 
   let fileInput = $state<HTMLInputElement>()
-  let tokenInput = $state('')
+  let copied = $state(false)
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(runtime.sync.link)
+      copied = true
+      setTimeout(() => (copied = false), 1500)
+    } catch {
+      prompt('Copia o link:', runtime.sync.link)
+    }
+  }
 
   const syncLabel = $derived.by(() => {
     const s = runtime.sync
@@ -17,8 +26,8 @@
         return `Nuvem ✓ ${time}`
       case 'error':
         return 'Nuvem: erro'
-      case 'readonly':
-        return 'Nuvem: só leitura'
+      case 'on':
+        return 'Nuvem ✓'
       default:
         return 'Nuvem'
     }
@@ -67,25 +76,28 @@
 
 {#if runtime.showSync}
   <aside class="help sync">
-    <p>
-      A sessão fica guardada no GitHub, no ficheiro <code>session.json</code> do ramo <code>data</code> deste repositório. Qualquer computador que abra
-      esta página lê essa cópia. Para este computador também <strong>escrever</strong> as alterações, cola aqui um token do GitHub. A cópia mais recente
-      ganha.
-    </p>
-    {#if runtime.sync.hasToken}
+    {#if runtime.sync.link}
+      <p>
+        Esta sessão tem uma cópia na nuvem e cada alteração é guardada lá passados uns segundos. Para a abrires noutro computador, usa este link. Quem
+        tiver o link pode ler e alterar a sessão.
+      </p>
       <p class="row">
-        <span>Este computador guarda na nuvem.</span>
+        <input class="link" type="text" readonly value={runtime.sync.link} onfocus={(e) => e.currentTarget.select()} />
+        <button class="primary" onclick={copyLink}>{copied ? 'Copiado ✓' : 'Copiar link'}</button>
         <button onclick={syncNow}>Sincronizar agora</button>
-        <button class="danger" onclick={clearToken}>Remover token</button>
+        <button class="danger" onclick={disableCloud}>Desligar neste computador</button>
+      </p>
+      <p class="muted small">
+        Guarda o link nos favoritos ou nas notas da campanha. A cópia na nuvem é apagada pelo serviço ao fim de 30 dias sem ser aberta; se isso acontecer, a app
+        cria uma nova a partir deste computador e o link muda.
       </p>
     {:else}
-      <form class="row" onsubmit={(e) => { e.preventDefault(); saveToken(tokenInput); tokenInput = '' }}>
-        <input class="token" type="password" bind:value={tokenInput} placeholder="github_pat_…" autocomplete="off" />
-        <button type="submit" class="primary" disabled={!tokenInput.trim()}>Guardar token</button>
-      </form>
-      <p class="muted small">
-        Cria o token em <a href={SYNC_HELP_URL} target="_blank" rel="noreferrer">github.com → Settings → Developer settings → Fine-grained tokens</a>:
-        Repository access "Only select repositories" → dnd-soundboard; Permissions → Contents: Read and write. O token fica só neste browser.
+      <p>
+        A sessão está guardada só neste browser. Liga a nuvem para ter uma cópia partilhada, sem conta nem token: recebes um link que abre a mesma sessão
+        em qualquer computador e guarda as alterações automaticamente. A cópia mais recente ganha.
+      </p>
+      <p class="row">
+        <button class="primary" onclick={enableCloud} disabled={runtime.sync.status === 'saving'}>Ligar nuvem</button>
       </p>
     {/if}
     {#if runtime.sync.message}
@@ -105,7 +117,7 @@
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>Todas as tracks carregam ao abrir a página e ficam pré-carregadas em silêncio, prontas a arrancar sem atraso.</li>
       <li>Círculo à esquerda de cada track: laranja intermitente a carregar, laranja fixo armada, pronta ou em fade out, verde a tocar ou em fade in, vermelho erro.</li>
-      <li>Tudo fica guardado neste browser e, com um token no botão Nuvem, também no GitHub, para abrires noutro computador. Exportar e Importar continuam a funcionar.</li>
+      <li>Tudo fica guardado neste browser. O botão Nuvem cria uma cópia partilhada com um link que abre a mesma sessão noutro computador. Exportar e Importar continuam a funcionar.</li>
     </ul>
   </aside>
 {/if}
@@ -152,8 +164,9 @@
   .sync p {
     margin: 0.4rem 0;
   }
-  .sync .token {
+  .sync .link {
     flex: 1 1 22rem;
+    min-width: 0;
   }
   .small {
     font-size: 0.85rem;
@@ -161,9 +174,5 @@
   .error {
     color: #ffb3ad;
   }
-  code {
-    background: var(--bg);
-    padding: 0 0.3em;
-    border-radius: 4px;
-  }
+
 </style>
