@@ -1,37 +1,20 @@
 <script lang="ts">
-  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, enableCloud, disableCloud, syncNow } from '../lib/state.svelte'
+  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession } from '../lib/state.svelte'
+  import { currentLink } from '../lib/sync'
 
   let fileInput = $state<HTMLInputElement>()
   let copied = $state(false)
 
   async function copyLink() {
+    const link = currentLink()
     try {
-      await navigator.clipboard.writeText(runtime.sync.link)
+      await navigator.clipboard.writeText(link)
       copied = true
       setTimeout(() => (copied = false), 1500)
     } catch {
-      prompt('Copia o link:', runtime.sync.link)
+      prompt('Copia o link:', link)
     }
   }
-
-  const syncLabel = $derived.by(() => {
-    const s = runtime.sync
-    const time = s.at ? new Date(s.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''
-    switch (s.status) {
-      case 'pulling':
-        return 'Nuvem: a ler…'
-      case 'saving':
-        return 'Nuvem: a guardar…'
-      case 'saved':
-        return `Nuvem ✓ ${time}`
-      case 'error':
-        return 'Nuvem: erro'
-      case 'on':
-        return 'Nuvem ✓'
-      default:
-        return 'Nuvem'
-    }
-  })
 
   async function onImport(e: Event) {
     const input = e.currentTarget as HTMLInputElement
@@ -65,8 +48,8 @@
 
   <span class="grow"></span>
 
-  <button class:primary={runtime.showSync} class:danger={runtime.sync.status === 'error'} title="Guardar a sessão na nuvem" onclick={() => (runtime.showSync = !runtime.showSync)}>
-    {syncLabel}
+  <button class:primary={runtime.showLink} title="Link que leva esta sessão para outro computador" onclick={() => (runtime.showLink = !runtime.showLink)}>
+    Link
   </button>
   <button onclick={exportSession}>Exportar</button>
   <button onclick={() => fileInput?.click()}>Importar</button>
@@ -74,35 +57,21 @@
   <button class:primary={runtime.showHelp} onclick={() => (runtime.showHelp = !runtime.showHelp)}>?</button>
 </header>
 
-{#if runtime.showSync}
+{#if runtime.showLink}
   <aside class="help sync">
-    {#if runtime.sync.link}
-      <p>
-        Esta sessão tem uma cópia na nuvem e cada alteração é guardada lá passados uns segundos. Para a abrires noutro computador, usa este link. Quem
-        tiver o link pode ler e alterar a sessão.
-      </p>
-      <p class="row">
-        <input class="link" type="text" readonly value={runtime.sync.link} onfocus={(e) => e.currentTarget.select()} />
-        <button class="primary" onclick={copyLink}>{copied ? 'Copiado ✓' : 'Copiar link'}</button>
-        <button onclick={syncNow}>Sincronizar agora</button>
-        <button class="danger" onclick={disableCloud}>Desligar neste computador</button>
-      </p>
-      <p class="muted small">
-        Guarda o link nos favoritos ou nas notas da campanha. A cópia na nuvem é apagada pelo serviço ao fim de 30 dias sem ser aberta; se isso acontecer, a app
-        cria uma nova a partir deste computador e o link muda.
-      </p>
-    {:else}
-      <p>
-        A sessão está guardada só neste browser. Liga a nuvem para ter uma cópia partilhada, sem conta nem token: recebes um link que abre a mesma sessão
-        em qualquer computador e guarda as alterações automaticamente. A cópia mais recente ganha.
-      </p>
-      <p class="row">
-        <button class="primary" onclick={enableCloud} disabled={runtime.sync.status === 'saving'}>Ligar nuvem</button>
-      </p>
-    {/if}
-    {#if runtime.sync.message}
-      <p class="error">{runtime.sync.message}</p>
-    {/if}
+    <p>
+      A sessão inteira vai dentro do link desta página, que se mantém sempre atualizado na barra de endereços. Copia-o para abrir a mesma sessão noutro
+      computador: cenas, faixas, volumes, tudo. Não há conta nem serviço externo. Guarda-o nas notas da campanha ou nos favoritos, e copia de novo quando
+      fizeres alterações.
+    </p>
+    <p class="row">
+      <button class="primary" onclick={copyLink}>{copied ? 'Copiado ✓' : 'Copiar link'}</button>
+      {#if runtime.link.loaded === 'newer'}
+        <span class="muted small">Esta página abriu com um link mais recente do que a sessão que aqui estava: ficou a do link.</span>
+      {:else if runtime.link.loaded === 'older'}
+        <span class="muted small">O link com que abriste era mais antigo do que a sessão deste computador: ficou a daqui.</span>
+      {/if}
+    </p>
   </aside>
 {/if}
 
@@ -117,7 +86,7 @@
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>Todas as tracks carregam ao abrir a página e ficam pré-carregadas em silêncio, prontas a arrancar sem atraso.</li>
       <li>Círculo à esquerda de cada track: laranja intermitente a carregar, laranja fixo armada, pronta ou em fade out, verde a tocar ou em fade in, vermelho erro.</li>
-      <li>Tudo fica guardado neste browser. O botão Nuvem cria uma cópia partilhada com um link que abre a mesma sessão noutro computador. Exportar e Importar continuam a funcionar.</li>
+      <li>Tudo fica guardado neste browser e no link da página. O botão Link copia-o para abrires a mesma sessão noutro computador. Exportar e Importar continuam a funcionar.</li>
     </ul>
   </aside>
 {/if}
@@ -164,15 +133,8 @@
   .sync p {
     margin: 0.4rem 0;
   }
-  .sync .link {
-    flex: 1 1 22rem;
-    min-width: 0;
-  }
   .small {
     font-size: 0.85rem;
-  }
-  .error {
-    color: #ffb3ad;
   }
 
 </style>
