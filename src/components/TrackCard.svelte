@@ -29,6 +29,10 @@
     applyTrackSettings(track)
   }
 
+  function toggleFade() {
+    track.fade = track.fade === false ? undefined : false
+  }
+
   function toggleShuffle() {
     track.shuffle = !track.shuffle
     applyTrackSettings(track)
@@ -57,6 +61,12 @@
     <button class="icon" class:primary={track.shuffle} title="Shuffle" onclick={toggleShuffle}>🔀</button>
   {/if}
 
+  <button
+    class="icon"
+    class:primary={track.fade !== false}
+    title={track.fade === false ? 'Fade desligado: entra e sai de imediato. Clica para ligar.' : 'Fade de 6 s ao arrancar e ao parar. Clica para desligar.'}
+    onclick={toggleFade}>〜</button
+  >
   {#if track.kind === 'video'}
     <input
       class="end"

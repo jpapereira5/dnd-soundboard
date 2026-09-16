@@ -28,6 +28,8 @@ export interface Track {
    * track can skip an outro. Undefined means play to the end. Videos only.
    */
   endAt?: number
+  /** false: start and stop at once instead of fading over FADE_MS. Default true. */
+  fade?: boolean
 }
 
 export interface Sfx {

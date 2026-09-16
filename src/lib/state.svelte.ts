@@ -59,6 +59,7 @@ function normalize(data: unknown): Session {
         shuffle: t.shuffle ?? false,
         group: t.group && GROUP_IDS.has(t.group) ? t.group : 'music',
         ...(Number(t.endAt) > 0 ? { endAt: Number(t.endAt) } : {}),
+        ...(t.fade === false ? { fade: false } : {}),
       })),
     sfx: normSfx(s.sfx),
   }))
@@ -227,9 +228,10 @@ function findSfx(id: string): Sfx | undefined {
   return undefined
 }
 
-/** Scene tracks fade over FADE_MS; SFX are cut instantly. */
+/** Scene tracks fade over FADE_MS unless their fade is switched off; SFX are cut instantly. */
 function fadeFor(id: string): number {
-  return findTrack(id) ? FADE_MS : 0
+  const track = findTrack(id)
+  return track && track.fade !== false ? FADE_MS : 0
 }
 
 /**
@@ -275,13 +277,13 @@ function startScene(sceneId: string) {
   const wanted = new Set(sceneTargets(scene).map((t) => t.id))
   for (const [id, player] of players) {
     if (wanted.has(id)) continue
-    if (player.active && findTrack(id)) player.stop(FADE_MS)
+    if (player.active && findTrack(id)) player.stop(fadeFor(id))
   }
   pendingPlays.clear()
   for (const id of wanted) {
     const player = players.get(id)
-    if (!player) pendingPlays.set(id, FADE_MS)
-    else if (!player.active) player.play(FADE_MS)
+    if (!player) pendingPlays.set(id, fadeFor(id))
+    else if (!player.active) player.play(fadeFor(id))
   }
 }
 
@@ -298,7 +300,7 @@ export function fadeOutScene(sceneId: string) {
   if (runtime.activeSceneId === sceneId) runtime.activeSceneId = null
   for (const track of scene.tracks) {
     pendingPlays.delete(track.id)
-    players.get(track.id)?.stop(FADE_MS)
+    players.get(track.id)?.stop(fadeFor(track.id))
   }
 }
 
@@ -316,7 +318,7 @@ export function toggleTrack(track: Track) {
   if (!player) return
   // A track fading out is treated as stopped: pressing play brings it back.
   if (player.active && !player.stopping) {
-    player.stop(FADE_MS)
+    player.stop(fadeFor(track.id))
     return
   }
   if (track.group !== 'ambience') {
@@ -328,10 +330,10 @@ export function toggleTrack(track: Track) {
     for (const other of scene?.tracks ?? []) {
       if (other === track || other.group === 'ambience') continue
       const p = players.get(other.id)
-      if (p?.active) p.stop(FADE_MS)
+      if (p?.active) p.stop(fadeFor(other.id))
     }
   }
-  player.play(FADE_MS)
+  player.play(fadeFor(track.id))
 }
 
 /** Any track of this group is playing or fading in. */
@@ -354,7 +356,7 @@ export function toggleGroup(sceneId: string, group: Group) {
     return p?.active && !p.stopping
   })
   if (active.length) {
-    for (const t of active) players.get(t.id)?.stop(FADE_MS)
+    for (const t of active) players.get(t.id)?.stop(fadeFor(t.id))
     return
   }
   if (group === 'ambience') for (const t of tracks) toggleTrack(t)
