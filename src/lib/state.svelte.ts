@@ -58,6 +58,7 @@ function normalize(data: unknown): Session {
         volume: clamp(t.volume ?? 70),
         shuffle: t.shuffle ?? false,
         group: t.group && GROUP_IDS.has(t.group) ? t.group : 'music',
+        ...(Number(t.endAt) > 0 ? { endAt: Number(t.endAt) } : {}),
       })),
     sfx: normSfx(s.sfx),
   }))
@@ -157,6 +158,7 @@ export interface RegisterOptions {
   loop: boolean
   shuffle: boolean
   volume: number
+  endAt?: number
 }
 
 export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOptions) {
@@ -169,6 +171,7 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
     kind: opts.kind,
     loop: opts.loop,
     shuffle: opts.shuffle,
+    endAt: opts.endAt,
     gain: sliderToGain(opts.volume),
     master: untrack(() => masterFor(id)),
     onStatus: (status, detail) => {
@@ -367,6 +370,7 @@ export function applyTrackSettings(track: Track) {
   if (!player) return
   player.setGain(sliderToGain(track.volume))
   player.setShuffle(track.shuffle)
+  player.setEndAt(track.endAt)
 }
 
 export function applySfxVolume(sfx: Sfx) {

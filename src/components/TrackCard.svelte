@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Track } from '../lib/types'
   import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer } from '../lib/state.svelte'
+  import { formatTime, parseTime } from '../lib/time'
 
   let { track, sceneId }: { track: Track; sceneId: string } = $props()
 
@@ -20,6 +21,13 @@
           ? `Playlist · a tocar: ${nowTitle || '—'}`
           : 'Vídeo',
   )
+
+  /** Commits the end field: keeps what was typed only if it reads as a time. */
+  function setEnd(input: HTMLInputElement) {
+    track.endAt = parseTime(input.value)
+    input.value = formatTime(track.endAt)
+    applyTrackSettings(track)
+  }
 
   function toggleShuffle() {
     track.shuffle = !track.shuffle
@@ -47,6 +55,17 @@
   {#if track.kind === 'playlist'}
     <button class="icon" title="Faixa seguinte" onclick={() => nextInPlaylist(track)}>⏭</button>
     <button class="icon" class:primary={track.shuffle} title="Shuffle" onclick={toggleShuffle}>🔀</button>
+  {/if}
+
+  {#if track.kind === 'video'}
+    <input
+      class="end"
+      type="text"
+      value={formatTime(track.endAt)}
+      placeholder="fim"
+      title="Tocar só até este ponto e voltar ao início, com o mesmo fade. Vazio: até ao fim do vídeo. Exemplo: 1:30"
+      onchange={(e) => setEnd(e.currentTarget)}
+    />
   {/if}
 
   <input class="vol" type="range" min="0" max="100" bind:value={track.volume} oninput={() => applyTrackSettings(track)} />
@@ -87,6 +106,12 @@
   .play {
     width: 8.5em;
     white-space: nowrap;
+  }
+  .end {
+    width: 4.5em;
+    flex: 0 0 auto;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
   .vol {
     width: 10rem;

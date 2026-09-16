@@ -33,6 +33,8 @@ export interface TrackPlayerOptions {
   kind: Kind
   loop: boolean
   shuffle: boolean
+  /** Seconds; loop back here instead of at the end of the video. */
+  endAt?: number
   /** 0..1 */
   gain: number
   /** 0..1 */
@@ -289,6 +291,7 @@ export class TrackPlayer {
   master: number
   loop: boolean
   shuffle: boolean
+  endAt?: number
   readonly kind: Kind
   readonly ytId: string
   readonly id: string
@@ -307,6 +310,7 @@ export class TrackPlayer {
     this.kind = opts.kind
     this.loop = opts.loop
     this.shuffle = opts.shuffle
+    this.endAt = opts.endAt
     this.gain = opts.gain
     this.master = opts.master
     this.onStatus = opts.onStatus
@@ -500,8 +504,10 @@ export class TrackPlayer {
     if (!this.voice.ready || !player) return
     const duration = player.getDuration()
     if (!duration || duration <= 0) return
-    const overlap = Math.min(LOOP_CROSSFADE_MS, (duration * 1000) / 3)
-    const remaining = (duration - player.getCurrentTime()) * 1000
+    // A track can be cut short: loop back at endAt instead of the real end.
+    const end = this.endAt && this.endAt < duration ? this.endAt : duration
+    const overlap = Math.min(LOOP_CROSSFADE_MS, (end * 1000) / 3)
+    const remaining = (end - player.getCurrentTime()) * 1000
     if (remaining <= overlap) this.loopCrossfade(overlap)
   }
 
@@ -623,6 +629,11 @@ export class TrackPlayer {
   setLoop(loop: boolean) {
     this.loop = loop
     if (this.kind === 'playlist' && this.ready) this.voices[0].player?.setLoop(loop)
+  }
+
+  /** Seconds, or undefined to play to the end. Takes effect at the next poll. */
+  setEndAt(endAt: number | undefined) {
+    this.endAt = endAt
   }
 
   setShuffle(shuffle: boolean) {

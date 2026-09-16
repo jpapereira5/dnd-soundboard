@@ -23,6 +23,11 @@ export interface Track {
   /** playlists only */
   shuffle: boolean
   group: Group
+  /**
+   * Seconds. Loop back here instead of at the real end of the video, so a
+   * track can skip an outro. Undefined means play to the end. Videos only.
+   */
+  endAt?: number
 }
 
 export interface Sfx {
