@@ -228,10 +228,15 @@ function findSfx(id: string): Sfx | undefined {
   return undefined
 }
 
-/** Scene tracks fade over FADE_MS unless their fade is switched off; SFX are cut instantly. */
-function fadeFor(id: string): number {
+/** Fade in: FADE_MS for a scene track unless its Fade button is off; SFX start at once. */
+function fadeInFor(id: string): number {
   const track = findTrack(id)
   return track && track.fade !== false ? FADE_MS : 0
+}
+
+/** Fade out: always FADE_MS for a scene track, whatever its Fade button says; SFX are cut. */
+function fadeOutFor(id: string): number {
+  return findTrack(id) ? FADE_MS : 0
 }
 
 /**
@@ -277,13 +282,13 @@ function startScene(sceneId: string) {
   const wanted = new Set(sceneTargets(scene).map((t) => t.id))
   for (const [id, player] of players) {
     if (wanted.has(id)) continue
-    if (player.active && findTrack(id)) player.stop(fadeFor(id))
+    if (player.active && findTrack(id)) player.stop(fadeOutFor(id))
   }
   pendingPlays.clear()
   for (const id of wanted) {
     const player = players.get(id)
-    if (!player) pendingPlays.set(id, fadeFor(id))
-    else if (!player.active) player.play(fadeFor(id))
+    if (!player) pendingPlays.set(id, fadeInFor(id))
+    else if (!player.active) player.play(fadeInFor(id))
   }
 }
 
@@ -300,7 +305,7 @@ export function fadeOutScene(sceneId: string) {
   if (runtime.activeSceneId === sceneId) runtime.activeSceneId = null
   for (const track of scene.tracks) {
     pendingPlays.delete(track.id)
-    players.get(track.id)?.stop(fadeFor(track.id))
+    players.get(track.id)?.stop(fadeOutFor(track.id))
   }
 }
 
@@ -309,7 +314,7 @@ export function stopAll(immediate = false) {
   runtime.activeSceneId = null
   runtime.battle = false
   pendingPlays.clear()
-  for (const [id, player] of players) player.stop(immediate ? 0 : fadeFor(id))
+  for (const [id, player] of players) player.stop(immediate ? 0 : fadeOutFor(id))
 }
 
 /** Play button on a track card. Starting always restarts, same as a scene start. */
@@ -318,7 +323,7 @@ export function toggleTrack(track: Track) {
   if (!player) return
   // A track fading out is treated as stopped: pressing play brings it back.
   if (player.active && !player.stopping) {
-    player.stop(fadeFor(track.id))
+    player.stop(fadeOutFor(track.id))
     return
   }
   if (track.group !== 'ambience') {
@@ -330,10 +335,10 @@ export function toggleTrack(track: Track) {
     for (const other of scene?.tracks ?? []) {
       if (other === track || other.group === 'ambience') continue
       const p = players.get(other.id)
-      if (p?.active) p.stop(fadeFor(other.id))
+      if (p?.active) p.stop(fadeOutFor(other.id))
     }
   }
-  player.play(fadeFor(track.id))
+  player.play(fadeInFor(track.id))
 }
 
 /** Any track of this group is playing or fading in. */
@@ -356,7 +361,7 @@ export function toggleGroup(sceneId: string, group: Group) {
     return p?.active && !p.stopping
   })
   if (active.length) {
-    for (const t of active) players.get(t.id)?.stop(fadeFor(t.id))
+    for (const t of active) players.get(t.id)?.stop(fadeOutFor(t.id))
     return
   }
   if (group === 'ambience') for (const t of tracks) toggleTrack(t)

@@ -64,7 +64,7 @@
   <button
     class="fade"
     class:primary={track.fade !== false}
-    title={track.fade === false ? 'Fade desligado: a faixa entra e sai de imediato. Clica para ligar.' : 'Fade ligado: 6 s ao arrancar e ao parar. Clica para desligar.'}
+    title={track.fade === false ? 'Fade in desligado: a faixa entra de imediato. O fade out mantém-se. Clica para ligar.' : 'Fade in de 6 s ao arrancar. Clica para desligar; o fade out mantém-se sempre.'}
     onclick={toggleFade}>Fade</button
   >
   {#if track.kind === 'video'}

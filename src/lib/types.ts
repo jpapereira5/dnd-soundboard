@@ -28,7 +28,7 @@ export interface Track {
    * track can skip an outro. Undefined means play to the end. Videos only.
    */
   endAt?: number
-  /** false: start and stop at once instead of fading over FADE_MS. Default true. */
+  /** false: start at once instead of fading in over FADE_MS. Fade out is never skipped. Default true. */
   fade?: boolean
 }
 
