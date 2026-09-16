@@ -62,10 +62,10 @@
   {/if}
 
   <button
-    class="icon"
+    class="fade"
     class:primary={track.fade !== false}
-    title={track.fade === false ? 'Fade desligado: entra e sai de imediato. Clica para ligar.' : 'Fade de 6 s ao arrancar e ao parar. Clica para desligar.'}
-    onclick={toggleFade}>〜</button
+    title={track.fade === false ? 'Fade desligado: a faixa entra e sai de imediato. Clica para ligar.' : 'Fade ligado: 6 s ao arrancar e ao parar. Clica para desligar.'}
+    onclick={toggleFade}>Fade</button
   >
   {#if track.kind === 'video'}
     <input
@@ -116,6 +116,10 @@
   .play {
     width: 8.5em;
     white-space: nowrap;
+  }
+  .fade {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.6rem;
   }
   .end {
     width: 4.5em;
