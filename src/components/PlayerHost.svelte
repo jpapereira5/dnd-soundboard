@@ -6,18 +6,25 @@
 
   let host = $state<HTMLDivElement>()
 
-  // Only `id`, the video and `host` are tracked, so the player is rebuilt
-  // when the track points at another video (a synced session can do that)
-  // and never for a volume or shuffle change, which applyTrackSettings
-  // pushes to the existing player. Every scene is mounted at startup.
+  // The player is built once per host and rebuilt only when the track points
+  // at another video (a synced session can do that). The effect may re-run
+  // for other reasons, so it compares the video itself instead of relying on
+  // Svelte's teardown: tearing down here would reload the iframe and cut the
+  // sound. Volume and shuffle changes go through applyTrackSettings.
+  let current = ''
   $effect(() => {
     if (!host) return
-    void ytId
-    void kind
+    const next = `${ytId}|${kind}`
     const el = host
-    untrack(() => registerPlayer(id, el, options))
-    return () => unregisterPlayer(id)
+    untrack(() => {
+      if (next === current) return
+      current = next
+      registerPlayer(id, el, options)
+    })
   })
+
+  // Only on unmount: the track was removed.
+  $effect(() => () => unregisterPlayer(untrack(() => id)))
 </script>
 
 <div class="player-host" bind:this={host}></div>
