@@ -160,16 +160,17 @@ kbd {
 
 /* Steady orange: armed, buffered, ready to start without delay. Also while
    fading out: the track is already on its way back to armed. */
+/* Green: loaded and ready to play. Also while fading out, on its way back to ready. */
 .status-dot.idle,
 .status-dot.stopping {
-  background: var(--accent);
+  background: var(--ok);
 }
 
-/* Green: playing or fading in. */
+/* Glowing green: playing or fading in. */
 .status-dot.fading,
 .status-dot.playing {
   background: var(--ok);
-  box-shadow: 0 0 6px var(--ok);
+  box-shadow: 0 0 6px 1px var(--ok);
 }
 
 .status-dot.error {

@@ -86,7 +86,7 @@
       <li><kbd>Esc</kbd> ou <kbd>0</kbd> fazem fade out a tudo.</li>
       <li>O browser só deixa tocar som depois de um clique na página. Se uma cena não arrancar, clica em qualquer lado e tenta de novo.</li>
       <li>Todas as tracks carregam ao abrir a página e ficam pré-carregadas em silêncio, prontas a arrancar sem atraso.</li>
-      <li>Círculo à esquerda de cada track: laranja intermitente a carregar, laranja fixo armada, pronta ou em fade out, verde a tocar ou em fade in, vermelho erro.</li>
+      <li>Círculo à esquerda de cada track: laranja intermitente a carregar, verde pronta a tocar ou em fade out, verde com brilho a tocar ou em fade in, vermelho erro.</li>
       <li>Tudo fica guardado neste browser e no link da página. O botão Link copia-o para abrires a mesma sessão noutro computador. Exportar e Importar continuam a funcionar.</li>
     </ul>
   </aside>
