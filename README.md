@@ -5,7 +5,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 ## Funcionalidades
 
 - **Cenas** (Taberna, Floresta, Cripta...): fade in numa cena faz fade out ao que estava a tocar. Todos os fades duram 6 segundos.
-- **Quatro grupos por cena**: Música e Batalha alternam, tocar uma faz fade out à outra; Ambiente toca sempre com a cena; Efeitos são sons curtos disparados por botão ou tecla, sem loop. Fade in toca a primeira faixa de Música e a primeira de Ambiente. As faixas arrastam-se pela pega para reordenar ou mudar de grupo; a primeira de cada grupo é a principal.
+- **Quatro grupos por cena**: Música e Batalha alternam, tocar uma faz fade out à outra; Ambiente toca sempre com a cena; Efeitos são sons curtos disparados por botão ou tecla, sem loop. Fade in numa cena toca a primeira faixa de Música e a primeira de Ambiente; o botão de cada grupo (Música, Batalha, Ambiente) faz fade in ao grupo: à primeira faixa, ou, no Ambiente, a todas. As faixas arrastam-se pela pega para reordenar ou mudar de grupo; a primeira de cada grupo é a principal.
 - **Tracks**: vídeo ou playlist do YouTube, sempre em loop. Volume independente, shuffle em playlists. O botão `Fade` de cada faixa, ligado por defeito, desliga só o fade de entrada dessa faixa; a saída faz sempre fade. Um vídeo pode ter um ponto de fim (campo `fim`, ex. `1:30`): o loop acontece aí em vez do fim real, com o mesmo crossfade, útil para cortar outros e cartões finais.
 - **Atalhos**: `1`–`9` ativam cenas, `Q`–`P`, `A`–`L`, `Z`–`M` disparam os efeitos da cena no ecrã, `Esc` faz fade out a tudo.
 - **Persistência** em `localStorage`, com exportação e importação em JSON.
@@ -27,4 +27,6 @@ npm install
 npm run dev
 ```
 
-`npm run build` gera a pasta `dist`. O workflow em `.github/workflows/deploy.yml` publica no GitHub Pages a cada push para `main`.
+`npm run check` corre o `svelte-check`; `npm run build` gera a pasta `dist`. O workflow `verificar.yml` corre os dois em cada push e pull request, e o `deploy.yml` publica no GitHub Pages a cada push para `main`.
+
+Uma cópia de leitura deste repositório vive na Google Drive do autor (`DND/dnd_soundboard`), atualizada pela skill `copia-drive` do repositório `campaign-cotn` quando o DM a pede; ninguém a edita à mão.
