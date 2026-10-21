@@ -10,6 +10,7 @@ Mesa de som para sessões de D&D que corre inteiramente no browser. Toca vários
 - **Atalhos**: `1`–`9` ativam cenas, `Q`–`P`, `A`–`L`, `Z`–`M` disparam os efeitos da cena no ecrã, `Esc` faz fade out a tudo.
 - **Persistência** em `localStorage`, com exportação e importação em JSON.
 - **Link**: a sessão inteira vai comprimida no link da página (`#s=…`), que é atualizado a cada alteração. O botão "Link" copia-o; abri-lo noutro computador carrega essa sessão, se for mais recente do que a que lá está. Sem conta nem serviço externo.
+- **Envio automático para o Drive**: com um Google Form configurado em `src/lib/publish.ts`, cada alteração envia o link para a folha de respostas desse form, que fica assim sempre com a versão mais recente. Ver `LINK.md`.
 
 ## Limitações conhecidas
 

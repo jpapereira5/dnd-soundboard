@@ -64,6 +64,14 @@
       computador: cenas, faixas, volumes, tudo. Não há conta nem serviço externo. Guarda-o nas notas da campanha ou nos favoritos, e copia de novo quando
       fizeres alterações.
     </p>
+    {#if runtime.publish.enabled}
+      <p class="muted small">
+        Envio automático para o Drive:
+        {#if runtime.publish.status === 'pending'}a enviar daqui a instantes…{:else if runtime.publish.status === 'sent'}enviado às
+          {new Date(runtime.publish.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}{:else if runtime.publish.status === 'error'}falhou
+          ({runtime.publish.message}){:else}ligado, envia depois de cada alteração{/if}
+      </p>
+    {/if}
     <p class="row">
       <button class="primary" onclick={copyLink}>{copied ? 'Copiado ✓' : 'Copiar link'}</button>
       {#if runtime.link.loaded === 'newer'}

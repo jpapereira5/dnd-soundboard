@@ -2,7 +2,8 @@ import { untrack } from 'svelte'
 import type { Group, Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
 import { FADE_MS, GROUPS, uid } from './types'
 import { TrackPlayer, setPrimePriority } from './youtube'
-import { sessionFromLink, writeLink } from './sync'
+import { sessionFromLink, writeLink, currentLink } from './sync'
+import { publishLink, PUBLISH_ENABLED } from './publish'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
 
@@ -113,6 +114,8 @@ export const runtime = $state({
   showLink: false,
   /** What the link this page was opened with contained, relative to the local copy. */
   link: { loaded: 'none' as 'none' | 'newer' | 'same' | 'older' },
+  /** Automatic send of the link to the Drive form (see publish.ts). */
+  publish: { enabled: PUBLISH_ENABLED, status: 'idle' as 'idle' | 'pending' | 'sent' | 'error', at: 0, message: '' },
 })
 
 /** JSON of the session without savedAt: what counts as a real change. */
@@ -127,12 +130,38 @@ let applyingRemote = false
 
 function persist() {
   const content = contentOf(session)
-  if (content !== lastContent) {
+  const changed = content !== lastContent
+  if (changed) {
     lastContent = content
     if (!applyingRemote) untrack(() => (session.savedAt = Date.now()))
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
   writeLink(session)
+  if (changed && started) schedulePublish()
+}
+
+// Publishing waits for a quiet spell after the last edit, so dragging a
+// slider sends one link, not fifty.
+const PUBLISH_DEBOUNCE_MS = 5000
+let publishTimer: number | null = null
+let started = false
+
+function schedulePublish() {
+  if (!PUBLISH_ENABLED) return
+  if (publishTimer !== null) clearTimeout(publishTimer)
+  runtime.publish.status = 'pending'
+  publishTimer = window.setTimeout(async () => {
+    publishTimer = null
+    try {
+      await publishLink(currentLink())
+      runtime.publish.status = 'sent'
+      runtime.publish.at = Date.now()
+      runtime.publish.message = ''
+    } catch (e) {
+      runtime.publish.status = 'error'
+      runtime.publish.message = e instanceof Error ? e.message : String(e)
+    }
+  }, PUBLISH_DEBOUNCE_MS)
 }
 
 // A link with a newer session wins over what this browser had. Then write the
@@ -140,6 +169,7 @@ function persist() {
 // away), and on every change. $effect.root lets us do this outside a component.
 loadFromLink()
 persist()
+started = true
 $effect.root(() => {
   $effect(persist)
 })
