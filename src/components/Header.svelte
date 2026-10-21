@@ -64,6 +64,14 @@
       computador: cenas, faixas, volumes, tudo. Não há conta nem serviço externo. Guarda-o nas notas da campanha ou nos favoritos, e copia de novo quando
       fizeres alterações.
     </p>
+    {#if runtime.cloud.enabled}
+      <p class="muted small">
+        Versão na Drive:
+        {#if runtime.cloud.status === 'checking'}a verificar…{:else if runtime.cloud.status === 'updated'}esta página recebeu uma versão mais recente às
+          {new Date(runtime.cloud.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}{:else if runtime.cloud.status === 'current'}a sessão daqui é a mais recente{:else if runtime.cloud.status === 'error'}não consegui ler
+          ({runtime.cloud.message}){:else}verifica ao abrir a página{/if}
+      </p>
+    {/if}
     {#if runtime.publish.enabled}
       <p class="muted small">
         Envio automático para o Drive:

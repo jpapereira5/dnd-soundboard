@@ -18,6 +18,32 @@ export const PUBLISH_FORM = {
 export const PUBLISH_ENABLED = PUBLISH_FORM.action !== '' && PUBLISH_FORM.field !== ''
 
 /**
+ * The sheet the form writes into, read back when the page opens so every
+ * computer starts from the latest link. The sheet must be shared as
+ * "anyone with the link can view". `gid` is the response tab's id.
+ */
+export const READ_SHEET = {
+  id: '1JG6Q-6JVjn8sPOhBXaey65-3i4c04o_0VmXwkaJuw2U',
+  gid: '',
+}
+
+export const READ_ENABLED = READ_SHEET.id !== '' && READ_SHEET.gid !== ''
+
+/** Newest link in the response sheet, or null when the sheet is empty. */
+export async function fetchLatestLink(): Promise<string | null> {
+  if (!READ_ENABLED) return null
+  const query = encodeURIComponent('select B order by A desc limit 1')
+  const url = `https://docs.google.com/spreadsheets/d/${READ_SHEET.id}/gviz/tq?tqx=out:csv&gid=${READ_SHEET.gid}&tq=${query}&_=${Date.now()}`
+  const r = await fetch(url, { cache: 'no-store' })
+  if (!r.ok) throw new Error(`a folha respondeu ${r.status}`)
+  const text = (await r.text()).replace(/^\uFEFF/, '')
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '')
+  const last = lines.at(-1) ?? ''
+  const value = last.startsWith('"') ? last.slice(1, -1).replace(/""/g, '"') : last
+  return value.startsWith('http') ? value : null
+}
+
+/**
  * Fire-and-forget POST. Google Forms answers with a page, not CORS headers,
  * so the request goes out as no-cors: it is delivered, but the browser hides
  * the response, so success cannot be confirmed here.

@@ -2,8 +2,8 @@ import { untrack } from 'svelte'
 import type { Group, Kind, PlayerStatus, Scene, Session, Sfx, Track } from './types'
 import { FADE_MS, GROUPS, uid } from './types'
 import { TrackPlayer, setPrimePriority } from './youtube'
-import { sessionFromLink, writeLink, currentLink } from './sync'
-import { publishLink, PUBLISH_ENABLED } from './publish'
+import { sessionFromLink, sessionFromUrl, writeLink, currentLink } from './sync'
+import { publishLink, fetchLatestLink, PUBLISH_ENABLED, READ_ENABLED } from './publish'
 
 const STORAGE_KEY = 'dnd-soundboard-v1'
 
@@ -116,6 +116,8 @@ export const runtime = $state({
   link: { loaded: 'none' as 'none' | 'newer' | 'same' | 'older' },
   /** Automatic send of the link to the Drive form (see publish.ts). */
   publish: { enabled: PUBLISH_ENABLED, status: 'idle' as 'idle' | 'pending' | 'sent' | 'error', at: 0, message: '' },
+  /** Automatic read of the latest link from the Drive sheet on open. */
+  cloud: { enabled: READ_ENABLED, status: 'idle' as 'idle' | 'checking' | 'updated' | 'current' | 'error', at: 0, message: '' },
 })
 
 /** JSON of the session without savedAt: what counts as a real change. */
@@ -172,6 +174,49 @@ persist()
 started = true
 $effect.root(() => {
   $effect(persist)
+})
+
+/**
+ * Reads the newest link from the Drive sheet and adopts its session when it
+ * is newer than the local one. Runs on open and whenever the tab comes back
+ * into view. When the local copy is the newer one, it is sent up instead.
+ */
+async function pullLatest() {
+  if (!READ_ENABLED || !navigator.onLine) return
+  runtime.cloud.status = 'checking'
+  try {
+    const link = await fetchLatestLink()
+    const d = link ? (sessionFromUrl(link) as Partial<Session> | null) : null
+    if (d && Array.isArray(d.scenes)) {
+      const data = normalize(d)
+      if (data.savedAt > session.savedAt) {
+        // Mark the content as already known so persist() does not stamp it as a local edit.
+        lastContent = contentOf(data)
+        applyingRemote = true
+        try {
+          applySession(data)
+        } finally {
+          applyingRemote = false
+        }
+        runtime.cloud.status = 'updated'
+        runtime.cloud.at = Date.now()
+        return
+      }
+      if (data.savedAt < session.savedAt) schedulePublish()
+    } else {
+      schedulePublish()
+    }
+    runtime.cloud.status = 'current'
+    runtime.cloud.at = Date.now()
+  } catch (e) {
+    runtime.cloud.status = 'error'
+    runtime.cloud.message = e instanceof Error ? e.message : String(e)
+  }
+}
+
+pullLatest()
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') pullLatest()
 })
 
 // ---------------------------------------------------------------------------
