@@ -10,7 +10,7 @@
  */
 export const PUBLISH_FORM = {
   /** The form's submit URL: https://docs.google.com/forms/d/e/<id>/formResponse */
-  action: '',
+  action: 'https://docs.google.com/forms/d/e/1FAIpQLScGKbCqGQJ5oYyGi8kGO6FauF_pk-LzcUEtkd3bgyNWrmpUdQ/formResponse',
   /** The question that receives the link: entry.<number> */
   field: '',
 }
@@ -24,7 +24,7 @@ export const PUBLISH_ENABLED = PUBLISH_FORM.action !== '' && PUBLISH_FORM.field 
  */
 export const READ_SHEET = {
   id: '1JG6Q-6JVjn8sPOhBXaey65-3i4c04o_0VmXwkaJuw2U',
-  gid: '',
+  gid: '226234950',
 }
 
 export const READ_ENABLED = READ_SHEET.id !== '' && READ_SHEET.gid !== ''
