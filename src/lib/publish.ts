@@ -12,7 +12,7 @@ export const PUBLISH_FORM = {
   /** The form's submit URL: https://docs.google.com/forms/d/e/<id>/formResponse */
   action: 'https://docs.google.com/forms/d/e/1FAIpQLScGKbCqGQJ5oYyGi8kGO6FauF_pk-LzcUEtkd3bgyNWrmpUdQ/formResponse',
   /** The question that receives the link: entry.<number> */
-  field: '',
+  field: 'entry.1928532683',
 }
 
 export const PUBLISH_ENABLED = PUBLISH_FORM.action !== '' && PUBLISH_FORM.field !== ''
