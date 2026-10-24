@@ -62,7 +62,7 @@
     <button class="icon" title="Tentar carregar de novo" onclick={() => retryPlayer(track.id)}>↻</button>
   {/if}
 
-  <button class="play" class:primary={playing} disabled={status === 'error'} onclick={() => toggleTrack(track)}>
+  <button class="play" class:primary={playing} class:danger={status === 'stopping'} class:on={status === 'stopping'} disabled={status === 'error'} onclick={() => toggleTrack(track)}>
     {status === 'fading' ? '▶ Fading in' : status === 'stopping' ? '■ Fading out' : playing ? '■ Fade out' : '▶ Fade in'}
   </button>
   {#if track.kind === 'playlist'}
