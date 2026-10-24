@@ -107,6 +107,8 @@ export const runtime = $state({
   battle: false,
   /** Track being dragged between or within groups, shared by every section. */
   dragTrackId: null as string | null,
+  /** A copied track or effect, ready to paste into any scene. Not persisted. */
+  clipboard: null as Clip | null,
   status: {} as Record<string, PlayerStatus>,
   errors: {} as Record<string, string>,
   titles: {} as Record<string, string>,
@@ -530,7 +532,14 @@ export function moveSceneTo(sceneId: string, target: number) {
   session.scenes.splice(target, 0, scene)
 }
 
-export function addTrack(sceneId: string, group: Group, ytId: string, kind: Kind, title = ''): Track | null {
+export function addTrack(
+  sceneId: string,
+  group: Group,
+  ytId: string,
+  kind: Kind,
+  title = '',
+  extra: Partial<Pick<Track, 'volume' | 'shuffle' | 'endAt' | 'fade'>> = {},
+): Track | null {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return null
   const track: Track = {
@@ -541,9 +550,59 @@ export function addTrack(sceneId: string, group: Group, ytId: string, kind: Kind
     volume: 70,
     shuffle: false,
     group,
+    ...extra,
   }
   scene.tracks.push(track)
   return track
+}
+
+// ---------------------------------------------------------------------------
+// Copy and paste between scenes
+// ---------------------------------------------------------------------------
+
+/** What a copied track or effect carries: everything but its id and group. */
+export interface Clip {
+  ytId: string
+  kind: Kind
+  title: string
+  volume: number
+  shuffle: boolean
+  endAt?: number
+  fade?: boolean
+}
+
+export function copyTrack(track: Track) {
+  runtime.clipboard = {
+    ytId: track.ytId,
+    kind: track.kind,
+    title: track.title || runtime.titles[track.id] || '',
+    volume: track.volume,
+    shuffle: track.shuffle,
+    ...(track.endAt ? { endAt: track.endAt } : {}),
+    ...(track.fade === false ? { fade: false } : {}),
+  }
+}
+
+export function copySfx(sfx: Sfx) {
+  runtime.clipboard = { ytId: sfx.ytId, kind: 'video', title: sfx.title || runtime.titles[sfx.id] || '', volume: sfx.volume, shuffle: false }
+}
+
+/** Pastes the clipboard as a new track of `group` in the scene. The clipboard stays, for more scenes. */
+export function pasteAsTrack(sceneId: string, group: Group) {
+  const c = runtime.clipboard
+  if (!c) return
+  addTrack(sceneId, group, c.ytId, c.kind, c.title, { volume: c.volume, shuffle: c.shuffle, endAt: c.endAt, fade: c.fade })
+}
+
+/** Pastes the clipboard as a new effect. Only videos: effects do not loop playlists. */
+export function pasteAsSfx(sceneId: string) {
+  const c = runtime.clipboard
+  if (!c || c.kind !== 'video') return
+  addSfx(sceneId, c.ytId, c.title, c.volume)
+}
+
+export function clearClipboard() {
+  runtime.clipboard = null
 }
 
 /**
@@ -572,10 +631,10 @@ export function removeTrack(sceneId: string, trackId: string) {
   scene.tracks = scene.tracks.filter((t) => t.id !== trackId)
 }
 
-export function addSfx(sceneId: string, ytId: string, title = ''): Sfx | null {
+export function addSfx(sceneId: string, ytId: string, title = '', volume = 100): Sfx | null {
   const scene = session.scenes.find((s) => s.id === sceneId)
   if (!scene) return null
-  const sfx: Sfx = { id: uid(), ytId, title, volume: 100 }
+  const sfx: Sfx = { id: uid(), ytId, title, volume }
   scene.sfx.push(sfx)
   return sfx
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, playSfx, addSfx, removeSfx, applySfxVolume, retryPlayer } from '../lib/state.svelte'
+  import { runtime, playSfx, addSfx, removeSfx, applySfxVolume, retryPlayer, copySfx } from '../lib/state.svelte'
   import { SFX_KEYS } from '../lib/hotkeys'
   import AddMediaForm from './AddMediaForm.svelte'
 
@@ -31,6 +31,7 @@
                 {/if}
                 <div class="row">
                   <input class="name" type="text" bind:value={sfx.title} placeholder="Nome" />
+                  <button class="icon" title="Copiar, para colar noutra cena" onclick={() => copySfx(sfx)}>⧉</button>
                   <button class="icon danger" title="Remover efeito" onclick={() => removeSfx(scene.id, sfx.id)}>✕</button>
                 </div>
                 <label class="vol">

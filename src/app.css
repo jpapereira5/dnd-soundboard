@@ -62,9 +62,23 @@ button.primary:hover {
   background: #a06a34;
 }
 
-button.danger:hover {
+/* Red-tinted at rest, the same look the hover gives; used for a stop that applies now. */
+button.danger:hover,
+button.danger.on {
   border-color: var(--danger);
   color: #ffb3ad;
+}
+
+/* Green: something is playing. */
+button.ok {
+  background: #2f6b33;
+  border-color: var(--ok);
+  color: #e3f6e4;
+}
+
+button.ok:hover {
+  background: #3a7f3f;
+  border-color: var(--ok);
 }
 
 button.icon {

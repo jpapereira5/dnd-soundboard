@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Track } from '../lib/types'
-  import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer } from '../lib/state.svelte'
+  import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer, copyTrack } from '../lib/state.svelte'
   import { formatTime, parseTime } from '../lib/time'
 
   let { track, sceneId }: { track: Track; sceneId: string } = $props()
@@ -81,6 +81,7 @@
   <input class="vol" type="range" min="0" max="100" bind:value={track.volume} oninput={() => applyTrackSettings(track)} />
   <span class="num">{track.volume}</span>
 
+  <button class="icon" title="Copiar, para colar noutra cena" onclick={() => copyTrack(track)}>⧉</button>
   <button class="icon danger" title="Remover track" onclick={() => removeTrack(sceneId, track.id)}>✕</button>
 </div>
 

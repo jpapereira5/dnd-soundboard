@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx, pasteAsTrack, pasteAsSfx, clearClipboard } from '../lib/state.svelte'
   import type { Group } from '../lib/types'
   import TrackSection from './TrackSection.svelte'
   import SfxSection from './SfxSection.svelte'
@@ -46,8 +46,9 @@
   <div class="row head">
     <input class="name" type="text" bind:value={scene.name} />
     <div class="actions">
-      <button class="primary" onclick={() => activateScene(scene.id)}>▶ Fade in</button>
-      <button disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
+      <!-- Idle: plain Fade in. Active: a green Playing and a red-tinted Fade out. -->
+      <button class:ok={active} onclick={() => activateScene(scene.id)}>{active ? '▶ Playing' : '▶ Fade in'}</button>
+      <button class="danger" class:on={active} disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
       <button class="danger delete" onclick={remove}>Apagar cena</button>
     </div>
   </div>
@@ -71,8 +72,20 @@
         <AddMediaForm allowPlaylist {actions} />
       </div>
     {/if}
-    <div>
+    <div class="row">
       <button class:primary={adding} onclick={() => (adding = !adding)}>{adding ? 'Fechar' : '+ Adicionar'}</button>
+      {#if runtime.clipboard}
+        <span class="paste row">
+          <span class="muted">Colar «{runtime.clipboard.title || runtime.clipboard.ytId}» em</span>
+          <button onclick={() => pasteAsTrack(scene.id, 'music')}>Música</button>
+          <button onclick={() => pasteAsTrack(scene.id, 'battle')}>Batalha</button>
+          <button onclick={() => pasteAsTrack(scene.id, 'ambience')}>Ambiente</button>
+          {#if runtime.clipboard.kind === 'video'}
+            <button onclick={() => pasteAsSfx(scene.id)}>Efeitos</button>
+          {/if}
+          <button class="icon" title="Esquecer o que foi copiado" onclick={clearClipboard}>✕</button>
+        </span>
+      {/if}
     </div>
   </div>
 </section>
@@ -98,6 +111,9 @@
   }
   .delete {
     margin-left: auto;
+  }
+  .paste {
+    gap: 0.4rem;
   }
   .sections {
     display: grid;
