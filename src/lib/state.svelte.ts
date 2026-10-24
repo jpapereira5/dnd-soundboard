@@ -449,13 +449,19 @@ export function sceneStopping(scene: Scene): boolean {
   return scene.tracks.some((t) => runtime.status[t.id] === 'stopping')
 }
 
-/** Any track or effect anywhere is sounding or about to: what Parar tudo would stop. */
-export function anythingSounding(): boolean {
+/**
+ * What Parar tudo has to deal with: 'sounding' when something plays, fades
+ * in or is about to; 'stopping' when the only sound left is fading out;
+ * null when the board is silent.
+ */
+export function boardState(): 'sounding' | 'stopping' | null {
+  let stopping = false
   for (const [id, s] of Object.entries(runtime.status)) {
-    if (s === 'playing' || s === 'fading' || s === 'stopping') return true
-    if (s === 'loading' && runtime.live[id]) return true
+    if (s === 'playing' || s === 'fading') return 'sounding'
+    if (s === 'loading' && runtime.live[id]) return 'sounding'
+    if (s === 'stopping') stopping = true
   }
-  return false
+  return stopping ? 'stopping' : null
 }
 
 /** Any track of this group is playing or fading in. */

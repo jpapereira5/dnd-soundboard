@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, anythingSounding } from '../lib/state.svelte'
+  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, boardState } from '../lib/state.svelte'
   import { currentLink } from '../lib/sync'
 
   let fileInput = $state<HTMLInputElement>()
+  const board = $derived(boardState())
   let copied = $state(false)
 
   async function copyLink() {
@@ -44,7 +45,10 @@
     <span class="num">{session.ambienceMaster}</span>
   </label>
 
-  <button class="danger" disabled={!anythingSounding()} onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
+  <!-- Grey while the board is silent; red 'Fading out' while the last sound leaves. -->
+  <button class="danger" class:on={board === 'stopping'} disabled={board === null} onclick={() => stopAll()}>
+    {board === 'stopping' ? '■ Fading out' : '■ Parar tudo'} <kbd>Esc</kbd>
+  </button>
 
   <span class="grow"></span>
 
