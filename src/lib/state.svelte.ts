@@ -403,18 +403,17 @@ export function stopAll(immediate = false) {
 }
 
 /** Play button on a track card. Starting always restarts, same as a scene start. */
-export function toggleTrack(track: Track) {
+/**
+ * Start one track, like the scene's Play button: a track already playing
+ * is left alone, one fading out comes back in place. Music and battle never
+ * overlap: every other music or battle track of the scene fades out. In the
+ * active scene this also sets the mode, so a later scene start or mode
+ * switch stays consistent.
+ */
+export function playTrack(track: Track) {
   const player = players.get(track.id)
-  if (!player) return
-  // A track fading out is treated as stopped: pressing play brings it back.
-  if (player.active && !player.stopping) {
-    player.stop(fadeOutFor(track.id))
-    return
-  }
+  if (!player || (player.active && !player.stopping)) return
   if (track.group !== 'ambience') {
-    // Music and battle never overlap: every other music or battle track of
-    // the scene fades out. In the active scene this also sets the mode, so
-    // a later scene start or mode switch stays consistent.
     const scene = session.scenes.find((s) => s.tracks.includes(track))
     if (scene && runtime.activeSceneId === scene.id) runtime.battle = track.group === 'battle'
     for (const other of scene?.tracks ?? []) {
@@ -424,6 +423,14 @@ export function toggleTrack(track: Track) {
     }
   }
   player.play(fadeInFor(track.id))
+}
+
+/** Fade one track out; nothing happens if it is not sounding. */
+export function stopTrack(track: Track) {
+  const player = players.get(track.id)
+  if (!player || !player.active || player.stopping) return
+  pendingPlays.delete(track.id)
+  player.stop(fadeOutFor(track.id))
 }
 
 /**
@@ -487,8 +494,8 @@ export function toggleGroup(sceneId: string, group: Group) {
     for (const t of active) players.get(t.id)?.stop(fadeOutFor(t.id))
     return
   }
-  if (group === 'ambience') for (const t of tracks) toggleTrack(t)
-  else if (tracks[0]) toggleTrack(tracks[0])
+  if (group === 'ambience') for (const t of tracks) playTrack(t)
+  else if (tracks[0]) playTrack(tracks[0])
 }
 
 export function nextInPlaylist(track: Track) {

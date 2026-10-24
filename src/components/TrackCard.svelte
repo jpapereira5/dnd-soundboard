@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Track } from '../lib/types'
-  import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer, copyTrack } from '../lib/state.svelte'
+  import { runtime, isPlaying, playTrack, stopTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer, copyTrack } from '../lib/state.svelte'
   import { formatTime, parseTime } from '../lib/time'
   import { youtubeUrl, copyText } from '../lib/url'
 
@@ -9,6 +9,12 @@
   const status = $derived(runtime.status[track.id] ?? 'loading')
   const nowTitle = $derived(runtime.titles[track.id] ?? '')
   const playing = $derived(isPlaying(track.id))
+  /** A start began and the player is still buffering: the Play button reads Loading. */
+  const loading = $derived(status === 'loading' && !!runtime.live[track.id])
+  const stopping = $derived(status === 'stopping')
+  /** Something to stop: the track sounds or is about to. */
+  const sounding = $derived(playing || loading)
+  const playLabel = $derived(loading ? '▶ Loading' : playing ? '▶ Playing' : '▶ Play')
   const hint = $derived(
     status === 'error'
       ? `Erro: ${runtime.errors[track.id]}`
@@ -62,10 +68,9 @@
     <button class="icon" title="Tentar carregar de novo" onclick={() => retryPlayer(track.id)}>↻</button>
   {/if}
 
-  <!-- Filled only while the sound comes in; plain while it plays (the card is lit), red while it leaves. -->
-  <button class="play" class:primary={status === 'fading'} class:danger={playing || status === 'stopping'} class:on={status === 'stopping'} disabled={status === 'error'} onclick={() => toggleTrack(track)}>
-    {status === 'fading' ? '▶ Fading in' : status === 'stopping' ? '■ Fading out' : playing ? '■ Fade out' : '▶ Fade in'}
-  </button>
+  <!-- Same pair as the scene header: Play → Loading (yellow) → Playing (green); Stop grey until something sounds, red while it fades out. -->
+  <button class="play" class:primary={loading} class:ok={playing} disabled={status === 'error'} onclick={() => playTrack(track)}>{playLabel}</button>
+  <button class="stop danger" class:on={stopping} disabled={!sounding && !stopping} onclick={() => stopTrack(track)}>{stopping ? '■ Fading out' : '■ Stop'}</button>
   {#if track.kind === 'playlist'}
     <button class="icon" title="Faixa seguinte" onclick={() => nextInPlaylist(track)}>⏭</button>
     <button class="icon" class:primary={track.shuffle} title="Shuffle" onclick={toggleShuffle}>🔀</button>
@@ -125,7 +130,11 @@
     white-space: nowrap;
   }
   .play {
-    width: 8.5em;
+    width: 7em;
+    white-space: nowrap;
+  }
+  .stop {
+    width: 8em;
     white-space: nowrap;
   }
   .fade {
