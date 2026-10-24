@@ -560,12 +560,22 @@ export class TrackPlayer {
       this.onStatus?.('loading')
       return
     }
+    // Called during a fade out: the video is still playing, so leave it
+    // where it is and just bring the volume back up. Seeking to the start
+    // here would be heard as a cut.
+    const resuming = this.stopping
     this.active = true
     this.stopping = false
     this.announce()
     for (const other of this.voices) if (other !== voice) other.cut()
     this.startLoopWatch()
     voice.unprime()
+    if (resuming) {
+      this.onStatus?.('fading')
+      // Ramp at the normal speed over the distance left, not the full time.
+      voice.fadeTo(1, Math.round(fadeMs * (1 - voice.level)), 'scene', () => this.onStatus?.('playing'))
+      return
+    }
     voice.seekToStart()
     if (!voice.fading && voice.level > 0) {
       voice.player.playVideo()
