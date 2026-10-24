@@ -30,8 +30,10 @@
     applyTrackSettings(track)
   }
 
+  /** One copy: the YouTube link goes to the system clipboard, and the track is ready to paste into any scene. */
   let linkCopied = $state(false)
-  async function copyYoutubeLink() {
+  async function copy() {
+    copyTrack(track)
     linkCopied = await copyText(youtubeUrl(track.ytId, track.kind))
     setTimeout(() => (linkCopied = false), 1500)
   }
@@ -88,8 +90,7 @@
   <input class="vol" type="range" min="0" max="100" bind:value={track.volume} oninput={() => applyTrackSettings(track)} />
   <span class="num">{track.volume}</span>
 
-  <button class="icon" title="Copiar o link do YouTube" onclick={copyYoutubeLink}>{linkCopied ? '✓' : '🔗'}</button>
-  <button class="icon" title="Copiar, para colar noutra cena" onclick={() => copyTrack(track)}>⧉</button>
+  <button class="icon" title="Copiar: o link do YouTube fica na área de transferência e a faixa pronta a colar noutra cena" onclick={copy}>{linkCopied ? '✓' : '⧉'}</button>
   <button class="icon danger" title="Remover track" onclick={() => removeTrack(sceneId, track.id)}>✕</button>
 </div>
 

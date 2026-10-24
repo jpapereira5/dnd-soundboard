@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Scene } from '../lib/types'
+  import type { Scene, Sfx } from '../lib/types'
   import { runtime, playSfx, addSfx, removeSfx, applySfxVolume, retryPlayer, copySfx } from '../lib/state.svelte'
   import { SFX_KEYS } from '../lib/hotkeys'
   import { youtubeUrl, copyText } from '../lib/url'
@@ -7,9 +7,11 @@
 
   let { scene }: { scene: Scene } = $props()
 
+  /** One copy: the YouTube link goes to the system clipboard, and the effect is ready to paste into any scene. */
   let linkCopiedId = $state('')
-  async function copyYoutubeLink(id: string, ytId: string) {
-    linkCopiedId = (await copyText(youtubeUrl(ytId, 'video'))) ? id : ''
+  async function copy(sfx: Sfx) {
+    copySfx(sfx)
+    linkCopiedId = (await copyText(youtubeUrl(sfx.ytId, 'video'))) ? sfx.id : ''
     setTimeout(() => (linkCopiedId = ''), 1500)
   }
 </script>
@@ -38,8 +40,7 @@
                 {/if}
                 <div class="row">
                   <input class="name" type="text" bind:value={sfx.title} placeholder="Nome" />
-                  <button class="icon" title="Copiar o link do YouTube" onclick={() => copyYoutubeLink(sfx.id, sfx.ytId)}>{linkCopiedId === sfx.id ? '✓' : '🔗'}</button>
-                  <button class="icon" title="Copiar, para colar noutra cena" onclick={() => copySfx(sfx)}>⧉</button>
+                  <button class="icon" title="Copiar: o link do YouTube fica na área de transferência e o efeito pronto a colar noutra cena" onclick={() => copy(sfx)}>{linkCopiedId === sfx.id ? '✓' : '⧉'}</button>
                   <button class="icon danger" title="Remover efeito" onclick={() => removeSfx(scene.id, sfx.id)}>✕</button>
                 </div>
                 <label class="vol">
