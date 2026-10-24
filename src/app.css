@@ -62,11 +62,16 @@ button.primary:not(:disabled):hover {
   background: #a06a34;
 }
 
-/* Red on hover, and at rest while the stop it names is under way. */
-button.danger:not(:disabled):hover,
-button.danger.on {
+/* Red outline on hover; filled red while the stop it names is under way. */
+button.danger:not(:disabled):hover {
   border-color: var(--danger);
   color: #ffb3ad;
+}
+button.danger.on,
+button.danger.on:not(:disabled):hover {
+  background: #8a2f27;
+  border-color: var(--danger);
+  color: #ffe1de;
 }
 
 /* Green: something is playing. */
