@@ -43,7 +43,7 @@ button {
   transition: background 0.15s, border-color 0.15s;
 }
 
-button:hover {
+button:not(:disabled):hover {
   border-color: var(--accent-2);
   background: #332a21;
 }
@@ -58,12 +58,12 @@ button.primary {
   border-color: var(--accent);
 }
 
-button.primary:hover {
+button.primary:not(:disabled):hover {
   background: #a06a34;
 }
 
 /* Red on hover, and at rest while the stop it names is under way. */
-button.danger:hover,
+button.danger:not(:disabled):hover,
 button.danger.on {
   border-color: var(--danger);
   color: #ffb3ad;
@@ -76,7 +76,7 @@ button.ok {
   color: #e3f6e4;
 }
 
-button.ok:hover {
+button.ok:not(:disabled):hover {
   background: #3a7f3f;
   border-color: var(--ok);
 }
