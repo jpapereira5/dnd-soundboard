@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession } from '../lib/state.svelte'
+  import { session, runtime, setMaster, setAmbienceMaster, stopAll, exportSession, importSession, anythingSounding } from '../lib/state.svelte'
   import { currentLink } from '../lib/sync'
 
   let fileInput = $state<HTMLInputElement>()
@@ -44,7 +44,7 @@
     <span class="num">{session.ambienceMaster}</span>
   </label>
 
-  <button class="danger" onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
+  <button class="danger" disabled={!anythingSounding()} onclick={() => stopAll()}>■ Parar tudo <kbd>Esc</kbd></button>
 
   <span class="grow"></span>
 

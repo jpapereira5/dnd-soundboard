@@ -62,7 +62,9 @@ button.primary:hover {
   background: #a06a34;
 }
 
-button.danger:hover {
+/* Red on hover, and at rest while the stop it names is under way. */
+button.danger:hover,
+button.danger.on {
   border-color: var(--danger);
   color: #ffb3ad;
 }

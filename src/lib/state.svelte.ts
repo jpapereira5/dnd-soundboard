@@ -110,6 +110,8 @@ export const runtime = $state({
   /** A copied track or effect, ready to paste into any scene. Not persisted. */
   clipboard: null as Clip | null,
   status: {} as Record<string, PlayerStatus>,
+  /** Ids whose player is running (started and not fading out). Reactive twin of TrackPlayer.active. */
+  live: {} as Record<string, boolean>,
   errors: {} as Record<string, string>,
   titles: {} as Record<string, string>,
   showHelp: false,
@@ -257,6 +259,10 @@ export function registerPlayer(id: string, host: HTMLElement, opts: RegisterOpti
       if (status === 'error') runtime.errors[id] = detail ?? 'erro'
       else delete runtime.errors[id]
     },
+    onActive: (on) => {
+      if (on) runtime.live[id] = true
+      else delete runtime.live[id]
+    },
     onTitle: (title) => {
       runtime.titles[id] = title
       const track = findTrack(id)
@@ -281,6 +287,7 @@ export function unregisterPlayer(id: string) {
   players.delete(id)
   pendingPlays.delete(id)
   delete runtime.status[id]
+  delete runtime.live[id]
   delete runtime.titles[id]
   delete runtime.errors[id]
 }
@@ -427,14 +434,27 @@ export function sceneState(scene: Scene): 'loading' | 'fading' | 'playing' | nul
   let fading = false
   let playing = false
   for (const t of scene.tracks) {
+    if (!runtime.live[t.id]) continue
     const s = runtime.status[t.id]
-    const p = players.get(t.id)
-    if (!p?.active || p.stopping) continue
     if (s === 'loading') return 'loading'
     if (s === 'fading') fading = true
     if (s === 'playing') playing = true
   }
   return fading ? 'fading' : playing ? 'playing' : null
+}
+
+/** A track of the scene is fading out right now. */
+export function sceneStopping(scene: Scene): boolean {
+  return scene.tracks.some((t) => runtime.status[t.id] === 'stopping')
+}
+
+/** Any track or effect anywhere is sounding or about to: what Parar tudo would stop. */
+export function anythingSounding(): boolean {
+  for (const [id, s] of Object.entries(runtime.status)) {
+    if (s === 'playing' || s === 'fading' || s === 'stopping') return true
+    if (s === 'loading' && runtime.live[id]) return true
+  }
+  return false
 }
 
 /** Any track of this group is playing or fading in. */

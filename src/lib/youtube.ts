@@ -41,6 +41,8 @@ export interface TrackPlayerOptions {
   master: number
   onStatus?: (status: PlayerStatus, detail?: string) => void
   onTitle?: (title: string) => void
+  /** Told whenever the track starts or stops counting as sounding (active and not fading out). */
+  onActive?: (on: boolean) => void
 }
 
 const FADE_STEP_MS = 40
@@ -303,6 +305,11 @@ export class TrackPlayer {
   private reloadTimer: number | null = null
   private onStatus?: TrackPlayerOptions['onStatus']
   private onTitle?: TrackPlayerOptions['onTitle']
+  private onActive?: TrackPlayerOptions['onActive']
+
+  private announce() {
+    this.onActive?.(this.active && !this.stopping)
+  }
 
   constructor(host: HTMLElement, opts: TrackPlayerOptions) {
     this.id = opts.id
@@ -315,6 +322,7 @@ export class TrackPlayer {
     this.master = opts.master
     this.onStatus = opts.onStatus
     this.onTitle = opts.onTitle
+    this.onActive = opts.onActive
     this.host = host
     this.createVoices()
   }
@@ -339,6 +347,7 @@ export class TrackPlayer {
     this.stopLoopWatch()
     this.active = false
     this.stopping = false
+    this.announce()
     this.pendingPlay = null
     this.ready = false
     this.current = 0
@@ -446,6 +455,7 @@ export class TrackPlayer {
       } else if (this.active) {
         // Playlist loops are handled by YouTube itself, so ENDED here means "really over".
         this.active = false
+        this.announce()
         this.stopLoopWatch()
         this.onStatus?.('idle')
       }
@@ -463,6 +473,7 @@ export class TrackPlayer {
       return
     }
     this.active = false
+    this.announce()
     this.stopLoopWatch()
     this.onStatus?.('error', ERROR_MESSAGES[code] ?? `erro ${code}`)
     // Code 5 is usually transient (many players loading at once). Retry a
@@ -551,6 +562,7 @@ export class TrackPlayer {
     }
     this.active = true
     this.stopping = false
+    this.announce()
     for (const other of this.voices) if (other !== voice) other.cut()
     this.startLoopWatch()
     voice.unprime()
@@ -578,6 +590,7 @@ export class TrackPlayer {
     voice.unprime()
     this.active = true
     this.stopping = false
+    this.announce()
     voice.level = 1
     voice.applyVolume()
     voice.player.seekTo(0, true)
@@ -592,10 +605,12 @@ export class TrackPlayer {
     if (!this.ready || !this.active) {
       this.active = false
       this.stopping = false
+      this.announce()
       this.onStatus?.('idle')
       return
     }
     this.stopping = true
+    this.announce()
     this.onStatus?.('stopping')
     const current = this.voice
     for (const voice of this.voices) {
@@ -605,6 +620,7 @@ export class TrackPlayer {
     current.fadeTo(0, current.level > 0 ? fadeMs : 0, 'scene', () => {
       this.active = false
       this.stopping = false
+      this.announce()
       current.pause()
       this.onStatus?.('idle')
     })

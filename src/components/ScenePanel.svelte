@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx, pasteAsTrack, pasteAsSfx, clearClipboard, sceneState } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx, pasteAsTrack, pasteAsSfx, clearClipboard, sceneState, sceneStopping } from '../lib/state.svelte'
   import type { Group } from '../lib/types'
   import TrackSection from './TrackSection.svelte'
   import SfxSection from './SfxSection.svelte'
@@ -9,8 +9,14 @@
   let { scene }: { scene: Scene } = $props()
 
   const active = $derived(runtime.activeSceneId === scene.id)
+  /** What the scene's running tracks are doing, whichever way they were started. */
+  const live = $derived(sceneState(scene))
+  /** Something in this scene is sounding, so there is something to fade out. */
+  const sounding = $derived(live !== null)
+  /** A fade out is under way: the button shows it in red until it ends. */
+  const stopping = $derived(sceneStopping(scene))
   /** Label of the start button while the scene is active: Loading, Fading in, then Playing. */
-  const startState = $derived(active ? sceneState(scene) : null)
+  const startState = $derived(active ? live : null)
   const startLabel = $derived(!active ? '▶ Fade in' : startState === 'loading' ? '▶ Loading' : startState === 'fading' ? '▶ Fading in' : '▶ Playing')
 
   // One form for the whole scene, opened by the Adicionar button: paste a
@@ -49,9 +55,10 @@
   <div class="row head">
     <input class="name" type="text" bind:value={scene.name} />
     <div class="actions">
-      <!-- Idle: plain Fade in. Active: Loading, then Fading in, then a green Playing. -->
-      <button class:ok={active && startState === 'playing'} onclick={() => activateScene(scene.id)}>{startLabel}</button>
-      <button class="danger" disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
+      <!-- Idle: plain Fade in. Active: Loading, then a filled Fading in, then a green Playing. -->
+      <button class:primary={active && startState === 'fading'} class:ok={active && startState === 'playing'} onclick={() => activateScene(scene.id)}>{startLabel}</button>
+      <!-- Grey while nothing sounds; red while a fade out runs. -->
+      <button class="danger" class:on={stopping} disabled={!sounding && !stopping} onclick={() => fadeOutScene(scene.id)}>{stopping ? '■ Fading out' : '■ Fade out'}</button>
       <button class="danger delete" onclick={remove}>Apagar cena</button>
     </div>
   </div>
