@@ -6,6 +6,22 @@ export interface ParsedYouTube {
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/
 const PLAYLIST_ID = /^[A-Za-z0-9_-]{13,}$/
 
+/** The canonical YouTube page for a video or playlist id. */
+export function youtubeUrl(ytId: string, kind: 'video' | 'playlist'): string {
+  return kind === 'playlist' ? `https://www.youtube.com/playlist?list=${ytId}` : `https://www.youtube.com/watch?v=${ytId}`
+}
+
+/** Copies text to the clipboard; falls back to a prompt where the API is unavailable. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    prompt('Copia o link:', text)
+    return false
+  }
+}
+
 /** Accepts full URLs, youtu.be links, shorts, embeds, playlist links or bare IDs. */
 export function parseYouTube(input: string): ParsedYouTube | null {
   const text = input.trim()

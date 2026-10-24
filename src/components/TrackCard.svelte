@@ -2,6 +2,7 @@
   import type { Track } from '../lib/types'
   import { runtime, isPlaying, toggleTrack, removeTrack, applyTrackSettings, nextInPlaylist, retryPlayer, copyTrack } from '../lib/state.svelte'
   import { formatTime, parseTime } from '../lib/time'
+  import { youtubeUrl, copyText } from '../lib/url'
 
   let { track, sceneId }: { track: Track; sceneId: string } = $props()
 
@@ -27,6 +28,12 @@
     track.endAt = parseTime(input.value)
     input.value = formatTime(track.endAt)
     applyTrackSettings(track)
+  }
+
+  let linkCopied = $state(false)
+  async function copyYoutubeLink() {
+    linkCopied = await copyText(youtubeUrl(track.ytId, track.kind))
+    setTimeout(() => (linkCopied = false), 1500)
   }
 
   function toggleFade() {
@@ -81,6 +88,7 @@
   <input class="vol" type="range" min="0" max="100" bind:value={track.volume} oninput={() => applyTrackSettings(track)} />
   <span class="num">{track.volume}</span>
 
+  <button class="icon" title="Copiar o link do YouTube" onclick={copyYoutubeLink}>{linkCopied ? '✓' : '🔗'}</button>
   <button class="icon" title="Copiar, para colar noutra cena" onclick={() => copyTrack(track)}>⧉</button>
   <button class="icon danger" title="Remover track" onclick={() => removeTrack(sceneId, track.id)}>✕</button>
 </div>

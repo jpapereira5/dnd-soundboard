@@ -97,7 +97,7 @@
       <li><kbd>1</kbd>–<kbd>9</kbd> fazem fade in à cena e fade out ao que estava a tocar. Clique numa cena só a mostra, duplo clique faz fade in.</li>
       <li>Cada cena tem Música, Batalha, Ambiente e Efeitos. Fade in numa cena toca a primeira faixa de Música e a primeira de Ambiente; o botão de um grupo faz fade in à primeira faixa dele, ou, no Ambiente, a todas. Música e Batalha alternam: tocar uma faz fade out à outra. Arrasta a pega ⠿ de uma faixa para a reordenar ou mover para outro grupo; a primeira de cada grupo é a principal.</li>
       <li>Todos os fades duram 6 segundos. O botão <kbd>Fade</kbd> de cada faixa, ligado por defeito, desliga o fade in dela: entra de imediato. O fade out mantém-se sempre.</li>
-      <li>O botão <kbd>⧉</kbd> de uma faixa ou efeito copia-o; depois, no fundo de qualquer cena, escolhe onde colar: Música, Batalha, Ambiente ou Efeitos. A cópia fica com o mesmo volume e definições.</li>
+      <li>O botão <kbd>🔗</kbd> de uma faixa ou efeito copia o link do YouTube original. O botão <kbd>⧉</kbd> copia-o; depois, no fundo de qualquer cena, escolhe onde colar: Música, Batalha, Ambiente ou Efeitos. A cópia fica com o mesmo volume e definições.</li>
       <li>O campo <kbd>fim</kbd> de cada vídeo corta a faixa mais cedo: escreve <kbd>1:30</kbd> e ela volta ao início nesse ponto, com o mesmo fade. Vazio toca até ao fim.</li>
       <li><kbd>Q</kbd>–<kbd>P</kbd>, <kbd>A</kbd>–<kbd>L</kbd>, <kbd>Z</kbd>–<kbd>M</kbd> disparam os efeitos da cena que está no ecrã, pela ordem em que estão.</li>
       <li><kbd>Esc</kbd> ou <kbd>0</kbd> fazem fade out a tudo.</li>
