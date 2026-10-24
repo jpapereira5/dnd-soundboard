@@ -372,7 +372,8 @@ function startScene(sceneId: string) {
   for (const id of wanted) {
     const player = players.get(id)
     if (!player) pendingPlays.set(id, fadeInFor(id))
-    else if (!player.active) player.play(fadeInFor(id))
+    // A track fading out counts as stopped: starting the scene brings it back from where it is.
+    else if (!player.active || player.stopping) player.play(fadeInFor(id))
   }
 }
 

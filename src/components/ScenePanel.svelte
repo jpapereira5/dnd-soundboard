@@ -17,7 +17,9 @@
   const stopping = $derived(sceneStopping(scene))
   /** Label of the start button while the scene is active: Loading, Fading in, then Playing. */
   const startState = $derived(active ? live : null)
-  const startLabel = $derived(!active ? '▶ Fade in' : startState === 'loading' ? '▶ Loading' : startState === 'fading' ? '▶ Fading in' : '▶ Playing')
+  const startLabel = $derived(
+    startState === 'loading' ? '▶ Loading' : startState === 'fading' ? '▶ Fading in' : startState === 'playing' ? '▶ Playing' : '▶ Fade in',
+  )
 
   // One form for the whole scene, opened by the Adicionar button: paste a
   // link, then pick where it goes. It closes again after adding.
