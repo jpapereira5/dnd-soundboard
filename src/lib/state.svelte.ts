@@ -418,6 +418,25 @@ export function toggleTrack(track: Track) {
   player.play(fadeInFor(track.id))
 }
 
+/**
+ * How far the scene's running tracks have got: still loading, fading in, or
+ * playing. Only tracks a start actually began count, so a track that is
+ * merely pre-buffering does not show the scene as loading.
+ */
+export function sceneState(scene: Scene): 'loading' | 'fading' | 'playing' | null {
+  let fading = false
+  let playing = false
+  for (const t of scene.tracks) {
+    const s = runtime.status[t.id]
+    const p = players.get(t.id)
+    if (!p?.active || p.stopping) continue
+    if (s === 'loading') return 'loading'
+    if (s === 'fading') fading = true
+    if (s === 'playing') playing = true
+  }
+  return fading ? 'fading' : playing ? 'playing' : null
+}
+
 /** Any track of this group is playing or fading in. */
 export function groupPlaying(scene: Scene, group: Group): boolean {
   return scene.tracks.some((t) => t.group === group && isPlaying(t.id))

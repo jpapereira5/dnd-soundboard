@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Scene } from '../lib/types'
-  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx, pasteAsTrack, pasteAsSfx, clearClipboard } from '../lib/state.svelte'
+  import { runtime, activateScene, fadeOutScene, removeScene, addTrack, addSfx, pasteAsTrack, pasteAsSfx, clearClipboard, sceneState } from '../lib/state.svelte'
   import type { Group } from '../lib/types'
   import TrackSection from './TrackSection.svelte'
   import SfxSection from './SfxSection.svelte'
@@ -9,6 +9,9 @@
   let { scene }: { scene: Scene } = $props()
 
   const active = $derived(runtime.activeSceneId === scene.id)
+  /** Label of the start button while the scene is active: Loading, Fading in, then Playing. */
+  const startState = $derived(active ? sceneState(scene) : null)
+  const startLabel = $derived(!active ? '▶ Fade in' : startState === 'loading' ? '▶ Loading' : startState === 'fading' ? '▶ Fading in' : '▶ Playing')
 
   // One form for the whole scene, opened by the Adicionar button: paste a
   // link, then pick where it goes. It closes again after adding.
@@ -46,9 +49,9 @@
   <div class="row head">
     <input class="name" type="text" bind:value={scene.name} />
     <div class="actions">
-      <!-- Idle: plain Fade in. Active: a green Playing and a red-tinted Fade out. -->
-      <button class:ok={active} onclick={() => activateScene(scene.id)}>{active ? '▶ Playing' : '▶ Fade in'}</button>
-      <button class="danger" class:on={active} disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
+      <!-- Idle: plain Fade in. Active: Loading, then Fading in, then a green Playing. -->
+      <button class:ok={active && startState === 'playing'} onclick={() => activateScene(scene.id)}>{startLabel}</button>
+      <button class="danger" disabled={!active} onclick={() => fadeOutScene(scene.id)}>■ Fade out</button>
       <button class="danger delete" onclick={remove}>Apagar cena</button>
     </div>
   </div>

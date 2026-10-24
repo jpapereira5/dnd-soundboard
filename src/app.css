@@ -62,9 +62,7 @@ button.primary:hover {
   background: #a06a34;
 }
 
-/* Red-tinted at rest, the same look the hover gives; used for a stop that applies now. */
-button.danger:hover,
-button.danger.on {
+button.danger:hover {
   border-color: var(--danger);
   color: #ffb3ad;
 }
