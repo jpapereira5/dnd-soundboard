@@ -17,9 +17,8 @@
   const stopping = $derived(sceneStopping(scene))
   /** Label of the start button while the scene is active: Loading, Fading in, then Playing. */
   const startState = $derived(active ? live : null)
-  const startLabel = $derived(
-    startState === 'loading' ? '▶ Loading' : startState === 'fading' ? '▶ Fading in' : startState === 'playing' ? '▶ Playing' : '▶ Play',
-  )
+  /** Loading in yellow until sound starts; Playing in green from the first note, fade in included. */
+  const startLabel = $derived(startState === 'loading' ? '▶ Loading' : startState ? '▶ Playing' : '▶ Play')
 
   // One form for the whole scene, opened by the Adicionar button: paste a
   // link, then pick where it goes. It closes again after adding.
@@ -57,8 +56,8 @@
   <div class="row head">
     <input class="name" type="text" bind:value={scene.name} />
     <div class="actions">
-      <!-- Idle: plain Fade in. Active: Loading, then a filled Fading in, then a green Playing. -->
-      <button class:primary={active && startState === 'fading'} class:ok={active && startState === 'playing'} onclick={() => activateScene(scene.id)}>{startLabel}</button>
+      <!-- Idle: plain Play. Active: a filled Loading, then a green Playing. -->
+      <button class:primary={startState === 'loading'} class:ok={startState === 'fading' || startState === 'playing'} onclick={() => activateScene(scene.id)}>{startLabel}</button>
       <!-- Grey while nothing sounds; red while a fade out runs. -->
       <button class="danger" class:on={stopping} disabled={!sounding && !stopping} onclick={() => fadeOutScene(scene.id)}>{stopping ? '■ Fading out' : '■ Stop'}</button>
       <button class="danger delete" onclick={remove}>Apagar cena</button>
