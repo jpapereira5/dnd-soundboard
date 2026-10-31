@@ -405,22 +405,26 @@ export function stopAll(immediate = false) {
 /** Play button on a track card. Starting always restarts, same as a scene start. */
 /**
  * Start one track, like the scene's Play button: a track already playing
- * is left alone, one fading out comes back in place. Music and battle never
- * overlap: every other music or battle track of the scene fades out. In the
- * active scene this also sets the mode, so a later scene start or mode
- * switch stays consistent.
+ * is left alone, one fading out comes back in place. Its scene becomes the
+ * active one, so every track sounding in any other scene fades out. Within
+ * the scene, music and battle never overlap: every other music or battle
+ * track fades out, and the group played sets the scene's mode.
  */
 export function playTrack(track: Track) {
   const player = players.get(track.id)
   if (!player || (player.active && !player.stopping)) return
-  if (track.group !== 'ambience') {
-    const scene = session.scenes.find((s) => s.tracks.includes(track))
-    if (scene && runtime.activeSceneId === scene.id) runtime.battle = track.group === 'battle'
-    for (const other of scene?.tracks ?? []) {
-      if (other === track || other.group === 'ambience') continue
-      const p = players.get(other.id)
-      if (p?.active) p.stop(fadeOutFor(other.id))
-    }
+  const scene = session.scenes.find((s) => s.tracks.includes(track))
+  if (scene) {
+    runtime.activeSceneId = scene.id
+    if (track.group !== 'ambience') runtime.battle = track.group === 'battle'
+  }
+  for (const [id, other] of players) {
+    const t = findTrack(id)
+    if (!t || t === track) continue
+    // Other scenes empty out entirely; this one keeps its ambience.
+    if (scene?.tracks.includes(t) && (t.group === 'ambience' || track.group === 'ambience')) continue
+    pendingPlays.delete(id)
+    if (other.active) other.stop(fadeOutFor(id))
   }
   player.play(fadeInFor(track.id))
 }
